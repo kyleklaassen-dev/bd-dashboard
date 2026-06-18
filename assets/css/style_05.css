@@ -1,0 +1,16 @@
+    /* Subtle, translucent — blends into the welcome screen; intensifies on hover/focus. */
+    #hw-ask{display:flex;align-items:center;gap:8px;width:min(540px,90%);margin:2px auto 36px;
+      background:rgba(255,255,255,0.5);border:1px solid rgba(120,143,168,0.22);border-radius:13px;
+      padding:0 6px 0 15px;height:50px;backdrop-filter:blur(3px);
+      box-shadow:0 1px 2px rgba(26,47,80,.05);transition:background .18s,border-color .18s,box-shadow .18s}
+    #hw-ask:hover{background:rgba(255,255,255,0.78);border-color:rgba(120,143,168,0.34)}
+    #hw-ask:focus-within{background:#ffffff;border-color:#2e6fb0;box-shadow:0 0 0 3px rgba(46,111,176,.13)}
+    #hw-ask .hw-ask-search{flex:0 0 auto;color:#9aabbe}
+    #hw-ask input{flex:1;min-width:0;border:none;outline:none;background:transparent;font-size:15px;color:#1a2f50;font-family:inherit}
+    #hw-ask input::placeholder{color:#aab8c8}
+    #hw-ask button{flex:0 0 auto;cursor:pointer;border:none;font-family:inherit;display:grid;place-items:center;background:none}
+    #hw-ask-review{width:34px;height:34px;border-radius:8px;color:#90a2b8;transition:.15s}
+    #hw-ask-review:hover{background:rgba(46,111,176,.10);color:#2e6fb0}
+    #hw-ask-go{width:36px;height:36px;border-radius:9px;background:#1e3a5f;color:#fff;transition:.15s}
+    #hw-ask-go:hover{background:#2e6fb0}
+    #hw-ask-go svg{display:block}

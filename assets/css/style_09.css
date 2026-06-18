@@ -1,0 +1,115 @@
+/* ── Audit Tab Styles ─────────────────────────────────────────── */
+.au-wrap         { max-width:1440px;margin:0 auto;padding:32px 36px 80px }
+.au-header       { margin-bottom:28px;padding:20px 24px;background:white;border-radius:10px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.06) }
+.au-title        { font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-.5px;margin:0 0 4px }
+.au-subtitle     { font-size:13px;color:#94a3b8 }
+.au-topbar       { display:flex;align-items:center;justify-content:space-between;margin-bottom:6px }
+.au-refreshbtn   { font-size:11px;font-weight:700;padding:5px 12px;border-radius:6px;border:1px solid #e2e8f0;background:white;color:#64748b;cursor:pointer }
+.au-refreshbtn:hover { color:#0f172a;border-color:#94a3b8 }
+.au-timestamp    { font-size:11px;color:#cbd5e1 }
+
+/* Stat row */
+.au-statrow      { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px }
+.au-stat         { background:white;border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;text-align:center;flex:1;min-width:70px }
+.au-stat-n       { font-size:16px;font-weight:800;color:#0f172a;line-height:1 }
+.au-stat-l       { font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-top:2px }
+
+/* Section blocks */
+.au-section      { background:white;border:1px solid #e2e8f0;border-radius:10px;padding:22px 24px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.07) }
+.au-sec-hd       { display:flex;align-items:center;gap:10px;margin-bottom:4px;cursor:pointer;user-select:none }
+.au-sec-icon     { font-size:18px;line-height:1 }
+.au-sec-title    { font-size:16px;font-weight:800;color:#0f172a;flex:1 }
+.au-sec-toggle   { font-size:12px;color:#cbd5e1;transition:transform .2s }
+.au-sec-body     { margin-top:14px }
+.au-sec-body.collapsed { display:none }
+/* Schema browser */
+.au-schema-lyr    { margin:18px 0 10px;padding-top:14px;border-top:2px solid #f1f5f9 }
+.au-schema-lyr-hd { font-size:11px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;margin-bottom:10px }
+.au-schema-grid   { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px }
+.au-schema-card   { background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden }
+.au-schema-thd    { display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f1f5f9 }
+.au-schema-tname  { font-size:11px;font-weight:800;font-family:monospace;color:#0f172a }
+.au-schema-cnt    { font-size:10px;background:#f1f5f9;color:#64748b;border-radius:10px;padding:1px 8px;font-weight:700 }
+.au-schema-desc   { font-size:10px;color:#64748b;padding:7px 12px 5px;line-height:1.55 }
+.au-schema-cols   { padding:5px 12px 10px;display:flex;flex-wrap:wrap;gap:3px }
+.col-pk  { font-size:9px;font-family:monospace;background:#1e293b;color:white;border-radius:3px;padding:1px 5px }
+.col-fk  { font-size:9px;font-family:monospace;background:#1d4ed8;color:white;border-radius:3px;padding:1px 5px }
+.col-enum{ font-size:9px;font-family:monospace;background:#d97706;color:white;border-radius:3px;padding:1px 5px }
+.col-arr { font-size:9px;font-family:monospace;background:#0891b2;color:white;border-radius:3px;padding:1px 5px }
+.col-ts  { font-size:9px;font-family:monospace;background:#e2e8f0;color:#475569;border-radius:3px;padding:1px 5px }
+.col-json{ font-size:9px;font-family:monospace;background:#7c3aed;color:white;border-radius:3px;padding:1px 5px }
+.col-bool{ font-size:9px;font-family:monospace;background:#059669;color:white;border-radius:3px;padding:1px 5px }
+.col-num { font-size:9px;font-family:monospace;background:#f59e0b;color:white;border-radius:3px;padding:1px 5px }
+.col-text{ font-size:9px;font-family:monospace;background:#f1f5f9;color:#334155;border-radius:3px;padding:1px 5px }
+
+/* Narrative text */
+.au-narrative    { font-size:13px;color:#475569;line-height:1.7;margin-bottom:14px }
+.au-narrative strong { color:#0f172a }
+
+/* Callout (did you know) */
+.au-callout      { background:#eff6ff;border-left:3px solid #3b82f6;border-radius:0 6px 6px 0;padding:10px 14px;margin:12px 0;font-size:12px;color:#1e40af;line-height:1.6 }
+.au-callout-hd   { font-weight:800;margin-bottom:2px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#3b82f6 }
+
+/* Status items */
+.au-items        { display:flex;flex-direction:column;gap:6px;margin:12px 0 }
+.au-item         { display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:6px;background:#f8fafc;font-size:12px }
+.au-item-dot     { width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0 }
+.au-item-name    { font-weight:700;color:#0f172a;margin-bottom:1px }
+.au-item-desc    { color:#64748b;line-height:1.5 }
+.dot-green       { background:#22c55e }
+.dot-yellow      { background:#f59e0b }
+.dot-red         { background:#ef4444 }
+.dot-blue        { background:#3b82f6 }
+.dot-gray        { background:#94a3b8 }
+
+/* Pill badges */
+.au-pill         { display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;white-space:nowrap }
+.p-green         { background:#dcfce7;color:#166534 }
+.p-yellow        { background:#fef9c3;color:#854d0e }
+.p-red           { background:#fee2e2;color:#991b1b }
+.p-blue          { background:#dbeafe;color:#1e40af }
+.p-gray          { background:#f1f5f9;color:#64748b }
+.p-purple        { background:#f3e8ff;color:#6b21a8 }
+
+/* Annotation boxes */
+.au-anno-wrap    { margin-top:16px;border-top:1px dashed #e2e8f0;padding-top:14px }
+.au-anno-label   { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#f59e0b;margin-bottom:6px;display:flex;align-items:center;gap:6px }
+.au-anno-label::before { content:'✏️';font-size:12px }
+.au-anno-field   { width:100%;min-height:60px;padding:10px 12px;border-radius:7px;border:1.5px solid #fde68a;background:#fffbeb;font-size:12px;color:#92400e;line-height:1.6;resize:vertical;font-family:inherit;outline:none;box-sizing:border-box }
+.au-anno-field:focus { border-color:#f59e0b;background:#fffde7 }
+.au-anno-field::placeholder { color:#d97706;opacity:.5 }
+.au-anno-saved   { font-size:10px;color:#d97706;margin-top:4px;height:14px;transition:opacity .3s }
+
+/* Edit mode */
+.au-editable               { cursor:text;border-radius:3px;transition:background .15s }
+.au-edit-active .au-editable { outline:none;border-bottom:1.5px dashed #fde68a }
+.au-edit-active .au-editable:focus { background:#fffbeb;border-bottom-color:#f59e0b;padding:2px 4px }
+.au-user-edit              { color:#d97706 !important }
+.au-user-edit strong, .au-user-edit em { color:#d97706 !important }
+.au-edit-indicator         { color:#f59e0b;font-size:9px;margin-left:4px;vertical-align:middle }
+.au-edit-btn               { font-size:11px;font-weight:700;padding:5px 12px;border-radius:6px;border:1px solid #e2e8f0;background:white;color:#64748b;cursor:pointer }
+.au-edit-btn:hover         { color:#0f172a;border-color:#94a3b8 }
+.au-edit-btn.active        { background:#fef9c3;border-color:#f59e0b;color:#92400e }
+.au-copy-btn               { display:none;font-size:11px;font-weight:700;padding:5px 12px;border-radius:6px;border:1px solid #f59e0b;background:#fffbeb;color:#92400e;cursor:pointer }
+.au-copy-btn:hover         { background:#fef9c3 }
+
+/* Backlog */
+.au-backlog-item      { border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:10px;background:white }
+.au-backlog-item:hover { border-color:#cbd5e1 }
+.au-backlog-hd        { display:flex;align-items:center;gap:8px;margin-bottom:4px }
+.au-backlog-rank      { font-size:11px;font-weight:800;color:#94a3b8;width:20px;flex-shrink:0 }
+.au-backlog-title     { font-size:14px;font-weight:700;color:#0f172a;flex:1 }
+.au-backlog-desc      { font-size:12px;color:#64748b;line-height:1.55;margin-left:28px }
+.au-backlog-tags      { display:flex;gap:6px;margin:6px 0 0 28px;flex-wrap:wrap }
+.au-complexity        { font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px }
+.cx-days    { background:#dcfce7;color:#166534 }
+.cx-week    { background:#dbeafe;color:#1e40af }
+.cx-weeks   { background:#fef9c3;color:#854d0e }
+.cx-month   { background:#fee2e2;color:#991b1b }
+
+/* Two-col grid for some sections */
+.au-2col     { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 }
+.au-mini     { background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:12px }
+.au-mini-hd  { font-size:11px;font-weight:800;color:#0f172a;margin-bottom:4px }
+.au-mini-bd  { font-size:11px;color:#64748b;line-height:1.55 }
+@media(max-width:640px){ .au-2col { grid-template-columns:1fr } }

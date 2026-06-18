@@ -1,5 +1,19 @@
 # index.html — Decomposition Plan
 
+> ## ✅ STATUS 2026-06-18 — Stages 2, 3, 4 effectively DONE. index.html **34,847 → 7,124 lines (−79.6%)**.
+> All JavaScript and all top-level CSS are externalized; index.html is now the HTML shell + `<script src>` /
+> `<link>` tags + small inline glue. Extracted under `assets/`:
+> - **JS (16 modules, `assets/js/`):** `core.js` (shared Supabase layer/globals) · `app.js` (loadData + all
+>   rendering + BRIDGE template, 13.5k lines) · the 14 tab/feature modules (reads, home_preview, changes_feed,
+>   saved_views, ontology_explorer, ontology_audit, audit, intel2, program_board, dkn, discovery_queue,
+>   company_database, pi_toggle, pharma_intel).
+> - **CSS (12 files, `assets/css/style_01..12.css`):** each `<style>` block → a `<link>` at the **same document
+>   position** (exact cascade preservation, not concatenated).
+> Every extraction was byte-identical relocation, verified via the Claude Code preview tools (HTTP 200 +
+> tab render + globals/computed-styles intact + 0 console errors). Merged in PRs #6–#12.
+> **Remaining (optional):** small inline glue scripts (10–50 lines each in the messy mid-file region) and the
+> in-JS `<style>` string now inside `app.js` — low value, leave unless a reason arises.
+
 > **Goal:** Make the 4.4 MB monolithic `index.html` smaller and more maintainable
 > **without breaking the live GitHub Pages site.** Staged by risk; the safest, highest-value
 > step (image extraction) is **already done** (see §3 / Stage 0).

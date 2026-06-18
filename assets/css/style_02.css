@@ -1,0 +1,116 @@
+.cw-card{background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin:0 0 18px;overflow:hidden}
+/* ── COMPACT MARKET & LEARNING TAB ────────────────────────────── */
+.rules-grid { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+.rule-chip { background:white; border-radius:7px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.rule-chip-hd { display:flex; align-items:center; gap:9px; padding:7px 12px; cursor:pointer; user-select:none; }
+.rule-chip-hd:hover { background:#f8fafc; }
+.rule-num { font-size:9.5px; font-weight:800; color:white; background:#1a2f50; padding:2px 7px; border-radius:5px; white-space:nowrap; flex-shrink:0; }
+.rule-brief { font-size:11.5px; color:#475569; flex:1; line-height:1.4; }
+.rule-toggle-icon { font-size:10px; color:#94a3b8; flex-shrink:0; transition:transform 0.2s; }
+.rule-chip.open .rule-toggle-icon { transform:rotate(180deg); }
+.rule-chip .predict-body { display:none; padding:10px 14px 12px; border-top:1px solid #f1f5f9; }
+.rule-chip.open .predict-body { display:block; }
+.stock-filter-bar { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; align-items:center; }
+.stock-filter-lbl { font-size:10px; font-weight:700; color:#8a9bb0; text-transform:uppercase; letter-spacing:0.4px; margin-right:2px; }
+.stock-fbtn { padding:3px 10px; border-radius:10px; border:1.5px solid #dde3ea; background:white; color:#64748b; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.12s; }
+.stock-fbtn:hover { border-color:#2e6fb0; color:#2e6fb0; }
+.stock-fbtn.active { background:#1a2f50; border-color:#1a2f50; color:white; }
+.stock-cards-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:10px; }
+.stock-card { background:white; border-radius:9px; box-shadow:0 1px 4px rgba(0,0,0,0.07); border:1px solid #e8eef5; overflow:visible; cursor:default; position:relative; z-index:1; transition:box-shadow 0.18s,z-index 0s; }
+.stock-card:hover { box-shadow:0 6px 22px rgba(0,0,0,0.14); z-index:350; }
+.stock-tile-hd { display:flex; align-items:flex-start; justify-content:space-between; padding:11px 13px 7px; }
+.stock-tile-left { flex:1; min-width:0; }
+.stock-tile-name { font-size:13px; font-weight:800; color:#0d1f38; }
+.stock-tile-sub { font-size:10.5px; color:#94a3b8; margin-top:1px; }
+.stock-tile-tags { display:flex; flex-wrap:wrap; gap:3px; margin-top:5px; }
+.stag { font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:7px; }
+.stag-tl1a { background:#e8f0f8; color:#2e6fb0; }
+.stag-tslp { background:#dbeafe; color:#1d4ed8; }
+.stag-il4ra { background:#fce7f3; color:#9d174d; }
+.stag-igf1r { background:#ecfdf5; color:#065f46; }
+.stag-fcrn  { background:#ede9fe; color:#5b21b6; }
+.stag-bcma  { background:#fef2f2; color:#991b1b; }
+.stock-tile-right { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; }
+.stock-expand-icon { font-size:16px; color:#c8d8ee; transition:transform 0.2s; }
+.stock-card.expanded .stock-expand-icon { transform:rotate(45deg); color:#2e6fb0; }
+.stock-insight { font-size:11.5px; color:#334155; line-height:1.55; padding:6px 13px 11px; border-top:1px solid #f1f5f9; }
+.stock-insight .si-up   { color:#059669; font-weight:700; }
+.stock-insight .si-down { color:#dc2626; font-weight:700; }
+.stock-insight .si-neut { color:#d97706; font-weight:700; }
+.stock-body { display:none; position:absolute; left:-1px; right:-1px; top:calc(100% - 2px); z-index:100; background:#fff; border:1px solid #c8d6e5; border-top:none; border-radius:0 0 9px 9px; box-shadow:0 8px 28px rgba(0,0,0,.16); padding:10px 13px 13px; }
+.stock-card:hover .stock-body { display:block; }
+.stock-card.expanded .stock-body { display:block; }
+.stock-full { display:none; }
+.sc-new-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#16a34a; margin-left:5px; vertical-align:middle; flex-shrink:0; animation:sc-blink 1.6s ease-in-out infinite; }
+@keyframes sc-blink { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(22,163,74,.5)} 50%{opacity:.5;box-shadow:0 0 0 4px rgba(22,163,74,0)} }
+.stock-card-hidden { display:none !important; }
+/* ── BD Signal row — compact bottom strip on company cards ── */
+.sc-bd-row { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:6px; padding-top:6px; border-top:1px solid #f1f5f9; }
+.sc-bd-badge { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; padding:2px 7px; border-radius:10px; white-space:nowrap; letter-spacing:0.03em; }
+.sc-bd-hot     { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+.sc-bd-active  { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+.sc-bd-monitor { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+.sc-bd-cold    { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
+.sc-cat-chip   { font-size:9px; font-weight:700; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:2px 6px; white-space:nowrap; }
+.sc-conf-chip  { font-size:9px; font-weight:700; border-radius:8px; padding:2px 6px; white-space:nowrap; }
+.sc-conf-verified { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+.sc-conf-model    { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.sc-conf-inferred { background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; }
+/* ── Data Quality tab in entity modal ── */
+.cem-dq-row { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f8fafc; }
+.cem-dq-status { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+.cem-dq-pass    { background:#22c55e; }
+.cem-dq-warn    { background:#f59e0b; }
+.cem-dq-fail    { background:#ef4444; }
+.cem-dq-review  { background:#a78bfa; }
+.cem-dq-unknown { background:#cbd5e1; }
+.cem-audit-row { display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px solid #f8fafc; font-size:11px; }
+.cem-audit-field { font-weight:700; color:#1e293b; font-size:10.5px; }
+.cem-audit-old { color:#94a3b8; text-decoration:line-through; font-size:10px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cem-audit-new { color:#0f172a; font-size:10px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* ── Files tab in entity modal ── */
+.cem-files-header { padding: 8px 0 12px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px; }
+.cem-files-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+.cem-file-filter-btn { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 14px; padding: 3px 10px; font-size: 11px; cursor: pointer; color: #64748b; }
+.cem-file-filter-btn.active { background: #ede9fe; border-color: #8b5cf6; color: #7c3aed; }
+.cem-files-list { display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto; }
+.cem-files-loading, .cem-files-empty { color: #94a3b8; font-size: 13px; padding: 24px; text-align: center; }
+.cem-file-row { display: flex; gap: 10px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fafafa; }
+.cem-file-row[data-type="8-K"] { border-left: 3px solid #dc2626; }
+.cem-file-row[data-type="abstract"] { border-left: 3px solid #6366f1; }
+.cem-file-row[data-type="clinical_data"] { border-left: 3px solid #4f46e5; }
+.cem-file-icon { font-size: 18px; min-width: 24px; }
+.cem-file-body { flex: 1; min-width: 0; }
+.cem-file-title a { font-size: 13px; color: #1e293b; font-weight: 500; text-decoration: none; }
+.cem-file-title a:hover { color: #6366f1; text-decoration: underline; }
+.cem-file-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.cem-file-type-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+.cem-file-venue, .cem-file-date, .cem-file-drugs, .cem-file-phase { font-size: 11px; color: #64748b; }
+.cem-file-authors { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+.cem-file-toggle-btn { font-size: 11px; color: #6366f1; background: none; border: none; cursor: pointer; padding: 4px 0; text-decoration: underline; }
+.cem-file-abstract { font-size: 12px; color: #475569; line-height: 1.5; margin-top: 6px; background: #f8fafc; padding: 8px; border-radius: 6px; }
+.cem-file-findings { font-size: 12px; color: #059669; margin-top: 4px; }
+.cw-hd{background:#1e3a5f;color:#fff;padding:11px 18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.cw-hd-title{font-size:13px;font-weight:700}
+.cw-hd-badge{background:rgba(255,255,255,.15);color:#fff;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:600}
+.cw-company-card{border-bottom:1px solid #f1f5f9}
+.cw-company-card:last-child{border-bottom:none}
+.cw-co-hd{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;background:#fafafa;transition:background .15s}
+.cw-co-hd:hover{background:#f1f5f9}
+.cw-co-left{display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap}
+.cw-overlap-badge{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700}
+.cw-co-name{font-size:12px;font-weight:700;color:#1e3a5f}
+.cw-co-drug{font-size:11px;color:#64748b}
+.cw-stage-pill{background:#e0f2fe;color:#0369a1;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600}
+.cw-ticker{font-size:10px;color:#94a3b8;font-family:monospace;margin-left:auto}
+.cw-toggle-icon{font-size:11px;color:#94a3b8;transition:transform .2s;flex-shrink:0}
+.cw-co-body{padding:14px 18px;background:#fff;border-top:1px solid #f1f5f9}
+.cw-summary{font-size:12px;color:#334155;line-height:1.65;margin:0 0 12px}
+.cw-pr-section{background:#f8fafc;border-radius:6px;padding:10px 14px}
+.cw-pr-hd{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.cw-pr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.cw-pr-list li{font-size:11px;color:#475569;display:flex;align-items:baseline;gap:8px}
+.cw-pr-date{color:#94a3b8;font-size:10px;white-space:nowrap;font-family:monospace;flex-shrink:0}
+.cw-pr-link{color:#1d4ed8;text-decoration:none}
+.cw-pr-link:hover{text-decoration:underline}
+.cw-grid{display:flex;flex-direction:column}
