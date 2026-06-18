@@ -3,6 +3,128 @@
 
 ---
 
+## 2026-06-18 — completeness scoring: fixed a silent production bug; tiered drugs 66 → 120
+
+Tracing the "115 untiered drugs" §C signal uncovered a real production bug in the completeness scorer
+(research_intelligence / completeness-scoring.yml): drugs with a NULL entity_id were grouped under a
+synthetic key, then load_entity_context re-queried by that key → empty drugs → upsert_research_queue
+crashed at drugs[0] (IndexError) → ~73% of entities silently skipped (workflow logged "4/15 scored" yet
+exited success). Fix: load_entity_context id-fallback + a drugs[0] guard. Ran the fixed scorer (--area all,
+non-LLM, idempotent): 107/107 entities scored, 0 errors; drugs.completeness_tier coverage 66 → 120,
+untiered 115 → 61. The 61 remaining are out of scope (25 unlinked, 36 in non-scored areas) — 0 in-scope
+gap. Scoreboard updated to show that distinction.
+
+Also fixed 9 split-introduced missing imports (queue.py json+requests on the prod path; os/sys across 7
+files) and added scripts/maintenance/check_undefined_names.py to the CI gate to prevent recurrence.
+
+
+
+## 2026-06-18 — governance: ALL 38 `trial_misattributed` resolved (38 → 0), CT.gov-verified
+
+Completed the governance correction with online verification per the directive. Every one of the 38 open
+`trial_misattributed_*` violations was checked against the **authoritative CT.gov record** (API v2 interventions/
+sponsor/studyType), not a token-matcher:
+- **15 STALE** → resolved (link already absent everywhere).
+- **20 REMOVE** → deleted the wrong link (6 `trials` + 18 `drug_sources` rows) where CT.gov shows a different asset
+  (apg279←APG777, kt501←SAR446523, mepolizumab←GSK5784283, mt-251←MT-201, spx306←SPX-303, win027←WIN378, …) or a pure
+  observational registry (PsoBest, I-CARE 2, BioDay, COMPARE-PIBD, eczema registry, …), then resolved.
+- **3 KEEP** → false positives retained: `verekitug--upb-101` (ints=Verekitug), the AbbVie risankizumab/lutikizumab/
+  trosunilimab combo, `spy230` (Spyre combination in the SPY001/002/003 platform trial). Validator slug-match had missed them.
+Reversible backup committed at `docs/audits/backups/governance_fix_backup_2026-06-18.json`; full record in
+`docs/audits/GOVERNANCE_TRIAGE_trial_misattributed_2026-06-18.md`. Scoreboard governance now **0 unresolved**;
+regression gate green (writers 8/0 + 6/0, edge-cases 9/0). No edges were orphaned (none referenced the bad NCTs).
+
+## 2026-06-18 — governance triage: 15 stale `trial_misattributed` resolved (38 → 23 open) [superseded above]
+
+The new intelligence-quality scoreboard surfaced 38 open `trial_misattributed_*` governance violations. Read-only
+investigation (CT.gov-verified) found they're a MIX, not uniform:
+- **15 STALE** — the bad NCT→drug link was verified **absent** from trials / drug_efficacy_endpoints / drug_sources /
+  catalysts / entity_edges (already cleaned; only the open log row remained). **Resolved** with a full audit trail
+  (`resolved_by=claude-governance-triage-2026-06-18`, `resolution_notes`, `resolved_at`). Governance 38 → 23.
+- **23 LIVE** — mislink still stored (trials/drug_sources). **Escalated, not auto-fixed** (deletes → Kyle's approval):
+  per-row CT.gov evidence + caveats in `docs/audits/GOVERNANCE_TRIAGE_trial_misattributed_2026-06-18.md`.
+  Key save: a token-matcher mis-judged BOTH `verekitug--upb-101` (a real Verekitug trial → FALSE POSITIVE, keep) and
+  `apg279`←APG777 (different Apogee assets → really WRONG), so no link was deleted on classifier output alone.
+Reversible (resolved is a flag); regression gate green (writers 8/0 + 6/0).
+
+---
+
+## 2026-06-18 — §3 splits: drug_intake + acquisition_scorer migrated & split (bucket → 1)
+
+Finished the §3 large-file work by migrating the two remaining splittable flat scripts into the package and
+splitting them. **The ≥1000-line health bucket is now 1** (only `weekend_sprint`, which is §2-decompose). Flat
+`scripts/` 32 → 30.
+- **`drug_intake.py` 1,627 → 456** — migrated `scripts/` → `src/meridian/ingestion/` (home = ingestion/, matching its
+  functional siblings ct_gov_sync + research; not identity/, which company_intake holds). Split into
+  `ingestion/drugintake/` {common, research, scoring, queue}. Fixed the creds-file repo-root anchor for the new depth.
+- **`acquisition_scorer.py` 1,091 → 197** — migrated `scripts/` → `src/meridian/scoring/`, split into
+  `scoring/acquisition/` {common, data, scoring, write}. Also fixed a real bug: it read the **dead** `.github_token`
+  (CLAUDE.md) at module level so it had been import-broken — now points at the live `.github_token_workflow`.
+- Both: byte-identical relocations, AST-guided imports, import-smoke (the smoke caught the depth-anchor + missing-`sys`
+  + dead-token issues), writer tests 6/0 + 8/0. No workflow/importer referenced either (manual tools) → low-risk.
+
+All on branch `refactor/section3-company-enrichment-prompts` (not pushed). **§3 large-file program: 9 files split,
+9→1 bucket.** Remaining `weekend_sprint` (3,001) is an active scheduled orchestrator → §2 decompose, supervised.
+
+---
+
+## 2026-06-17 — §3 splits: research_intelligence + company_intake + narrative_gen
+
+Three more large files modularized (same byte-identical / AST-guided / writer-test-gated method); the ≥1000-line
+health bucket is now down to 3 (only `weekend_sprint` 3,001 [§2], `drug_intake` 1,627 [scripts/, needs migration],
+`acquisition_scorer` 1,091 [manual] remain).
+- **`research_intelligence.py` 1,379 → 413** + `scoring/research_intel/` {common, context, scoring, triggers, queue}.
+- **`company_intake.py` 1,180 → 504** + `identity/intake/` {common, research, queue, edges}. Preserved the external
+  `write_active_in_edge` surface (scripts/approve_discovery imports it).
+- **`narrative_gen.py` 1,123 → 405** + `products/narrative/` {common, atoms, triangulate}. Heavily imported (3
+  modules) — re-imported the full public surface; all 3 importer modules verified to load. The import-smoke caught a
+  real `WORKSPACE` depth bug (dirname×4→×5 for the one-dir-deeper home) — fixed.
+All on branch `refactor/section3-company-enrichment-prompts` (not pushed). Writer tests 6/0 + 8/0 throughout.
+
+---
+
+## 2026-06-17 — §3 splits: write_meridian + ct_gov_sync modularized (overnight)
+
+Continued the §3 large-file work (same byte-identical / AST-guided / writer-test-gated method). The ≥1000-line
+health bucket dropped 9 → 7.
+- **`write_meridian.py` 2,387 → 435** orchestrator + 9 modules under `src/meridian/products/issue/` (common, fetch,
+  blocks, prompts, factcheck, links, persist, deploy). Guarded the external `dryrun_meridian` coupling — it does a bare
+  `import write_meridian as wm` and uses 32 `wm.*` names; all verified intact, dryrun_meridian still imports clean.
+- **`ct_gov_sync.py` 1,409 → 691** orchestrator + 5 modules under `src/meridian/ingestion/ctgov/` (common, map [pure],
+  validate, fetch, write), per the documented fetch/map/write design. parse_ct_study functional smoke verified.
+All on branch `refactor/section3-company-enrichment-prompts` (not yet pushed — `main` protected). Entrypoint paths
+unchanged → no workflow edits. Writer tests 6/0 + 8/0 throughout.
+
+## 2026-06-17 — §3 split: company_enrichment.py fully modularized (4,377 → 937)
+
+Split the nightly Intelligence Pipeline core into **11 focused modules** under a new
+`src/meridian/enrichment/company/` subpackage; `company_enrichment.py` is now a 937-line orchestrator + CLI
+(was the repo's single largest file at 4,377 — now out of the ≥1000-line health bucket). Branch
+`refactor/section3-company-enrichment-prompts` (8 commits, not yet pushed — `main` is protected).
+
+Modules (none >940 lines): `common.py` (shared base — creds, LLM client, `_RUN_TOKENS`, `sb_*` I/O, `log`,
+URL/confidence validation, `AREA_LABELS_MAP`), `prompts.py` (Step-5 prompt construction), `resolve.py`,
+`discovery.py` (Step 1), `trials.py` (CT.gov sync + context fetch), `catalysts.py` (Step 4), `assessment.py`
+(Step 5 web intel + write_step5), `molecule.py`, `partnerships.py`, `deals.py` (Step 6), `scoring.py`.
+
+Method (every commit): AST free-variable analysis to compute the exact import set + detect sibling/forward
+calls before moving → **byte-identical relocations** (each diffed vs. original = True). Clean star topology
+(everything imports `common`; `common` imports no feature module → 0 cycles). One bug fixed in flight:
+`_catalyst_upsert` repo-root anchor `parents[3]→[4]` (new dir is one level deeper). `_RUN_TOKENS` shared-object
+identity preserved (token accounting spans modules). Verified per step: py_compile + import-smoke + writer
+regression tests (6/0 + 8/0); final full CLI `--help` exercises the whole import chain; hygiene 0 hard-fails.
+Entrypoint path unchanged → workflows need no edits. **Deferred (supervised):** route `common.py`'s `sb_*`
+writes through the `src/meridian/database` writers (a write-path change → needs a watched `--dry-run` dispatch).
+
+## 2026-06-17 — §3 split: company_enrichment Step-5 prompts extracted (superseded above)
+
+First module of the `company_enrichment.py` large-file split (the nightly Intelligence Pipeline core). Extracted the Step-5 prompt construction into a new `src/meridian/enrichment/company/` subpackage:
+- **`company/prompts.py`** (747 lines): `ENRICHMENT_SYSTEM`, `load_enrichment_hints`, `enrichment_system_prompt`, `AREA_DISEASE_CONTEXT`, `build_step5_prompt`. Pure prompt assembly — no Supabase I/O, no LLM calls, no writers. `parse_enrichment_response` (uses `log`) and `write_step5` (the writer) intentionally stayed behind.
+- `company_enrichment.py` 4,377 → 3,663 lines; imports the two public builders from `meridian.enrichment.company.prompts`.
+- **Behavior-preserving by construction:** moved block is byte-identical to the old source (diff verified), minus the duplicate repo-root anchor (re-derived at the correct 4-levels-up depth for the new dir). Verified: py_compile, pure + full-module import-smoke, no external importers, writer regression tests 6/0 + 8/0, repo hygiene 0 hard failures.
+
+---
+
 ## 2026-06-06 — Graph connectivity: orphans connected + structural backbone built
 
 Connectivity audit answered "is everything connected?": NO — 55 of 159 visible drugs were orphans (no edges), 66 companies orphan, and the graph had competitive edges but no STRUCTURAL edges. Fixes:

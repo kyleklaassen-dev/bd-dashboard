@@ -66,26 +66,50 @@ over1000=[(n,f) for n,f in sizes if n>=1000]
 over500=[(n,f) for n,f in sizes if 500<=n<1000]
 
 # ---- 5. dependency graph (imports among our modules) ----
-modnames={p.stem:rel(p) for p in PYFILES}
+# Keyed by FULL module id (dotted path under src/, or bare stem for scripts/), NOT basename —
+# the §3 splits created many same-named submodules (common.py ×9, scoring.py ×3, …); keying by
+# basename collapsed them into single nodes → bogus fan-in + phantom cycles. Full-path keying fixes both.
+def _modid(p):
+    r = p.relative_to(ROOT)
+    if r.parts[0] == "src":
+        parts = r.with_suffix("").parts[1:]                 # drop "src" → meridian.<...>
+        if parts and parts[-1] == "__init__": parts = parts[:-1]   # __init__ → its package id
+        return ".".join(parts)
+    return p.stem                                            # scripts/: imported as a bare name
+modid = {p: _modid(p) for p in PYFILES}
+allids = set(modid.values())
+id2rel = {modid[p]: rel(p) for p in PYFILES}
 deps=collections.defaultdict(set)
-imp_re=re.compile(r'(?:from\s+meridian\.[\w.]+\s+import|from\s+(\w+)\s+import|import\s+(\w+))')
 for p in PYFILES:
-    for m in re.finditer(r'from\s+meridian\.([\w.]+)\s+import', read(p)):
-        target=m.group(1).split(".")[-1]
-        if target in modnames and target!=p.stem: deps[p.stem].add(target)
-    for m in re.finditer(r'(?:from|import)\s+(\w+)', read(p)):
+    sid=modid[p]; txt=read(p)
+    # package imports: edge to the longest real-module prefix of the dotted path
+    for m in re.finditer(r'from\s+(meridian\.[\w.]+)\s+import', txt):
+        parts=m.group(1).split(".")
+        for k in range(len(parts),1,-1):
+            cand=".".join(parts[:k])
+            if cand in allids and cand!=sid: deps[sid].add(cand); break
+    # bare imports of a scripts/ module (sys.path-style), e.g. `import write_meridian`.
+    # Skip "meridian" — that's the package root (every `from meridian.X import` starts with it);
+    # real package imports are already handled by the dotted branch above.
+    for m in re.finditer(r'(?:^|\n)\s*(?:from|import)\s+(\w+)', txt):
         tgt=m.group(1)
-        if tgt in modnames and tgt!=p.stem: deps[p.stem].add(tgt)
+        if tgt in allids and tgt!=sid and tgt!="meridian": deps[sid].add(tgt)
 indeg=collections.Counter()
 for src,tgts in deps.items():
     for t in tgts: indeg[t]+=1
-# crude cycle detection
+# cycle detection (any length) via DFS over the full-path graph
 def find_cycles():
-    cyc=[]
-    for a in deps:
-        for b in deps[a]:
-            if a in deps.get(b,()): 
-                if (b,a) not in cyc: cyc.append((a,b))
+    color={}; cyc=[]
+    def dfs(u,stack):
+        color[u]=1; stack.append(u)
+        for v in sorted(deps.get(u,())):
+            if color.get(v)==1:
+                c=stack[stack.index(v):]+[v]
+                if c not in cyc: cyc.append(c)
+            elif color.get(v,0)==0: dfs(v,stack)
+        color[u]=2; stack.pop()
+    for n in sorted(deps):
+        if color.get(n,0)==0: dfs(n,[])
     return cyc
 
 print("="*70); print("MERIDIAN STRUCTURAL HEALTH"); print("="*70)
@@ -121,6 +145,12 @@ for n,f in over500[:15]: print(f"     {n:5d}  {f}")
 print("\n── 5. MODULE DEPENDENCY GRAPH ──")
 print(f"  modules with internal deps: {len(deps)} | edges: {sum(len(v) for v in deps.values())}")
 print("  most depended-on (fan-in):")
-for mod,c in indeg.most_common(8): print(f"     {c:3d} <- {mod}  ({modnames.get(mod,'?')})")
+for mod,c in indeg.most_common(8): print(f"     {c:3d} <- {mod}")
 cyc=find_cycles()
-print(f"  import cycles (2-node): {cyc or 'none ✓'}")
+print(f"  import cycles: {[' → '.join(c) for c in cyc] if cyc else 'none ✓'}")
+
+# CI gate: `--ci` makes a real structural regression (an import cycle) fail the build.
+# Interactive runs (no flag) stay informational so the scoreboard is always readable.
+if "--ci" in sys.argv and cyc:
+    print("\n✗ CI GATE FAILED: import cycle(s) detected above.")
+    sys.exit(1)

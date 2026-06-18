@@ -4,7 +4,7 @@
 lost — so put it here. `PRIORITY.md` = what's active *right now*; `NEXT_SESSION.md` = the last
 session's handoff; **this file = everything still to do, by theme, with enough context to pick it up cold.**
 
-Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · ✅ done (kept briefly, then pruned).
+Last updated: 2026-06-18. Status legend: ⬜ not started · 🟡 in progress · ✅ done (kept briefly, then pruned).
 
 ---
 
@@ -14,14 +14,45 @@ Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · 
 - When you discover new work mid-task, add it here immediately (don't rely on memory or a code comment).
 - Keep items **outcome-phrased** and **self-contained** (a future reader has no memory of today).
 
+## ⭐ Strategic reframe (2026-06-18) — are we improving the repo's VALUE?
+The §3 splits (9 files, ≥1000-line bucket 9→1) genuinely improved **maintainability** — Kyle's north-star metric #4,
+and a real onboarding/bug-surface win. But they were **byte-identical by design → zero behavior change**, so they did
+NOT move the *product* value (intelligence accuracy, the dashboard, decision surfacing). Necessary, not sufficient.
+**The gaps that actually cap value (now tracked as §B–§E below):**
+- **§B No automated safety net (biggest gap).** 3 test files / 131 modules, and *nothing* ran in CI — a PR could break
+  the 4am pipeline and nothing caught it until the unattended run failed. The splits made ~40 modules unit-testable but
+  that dividend was uncashed. **Started 2026-06-18:** added `ci-quality-gate.yml` (compile + unit tests + health-no-cycles
+  + hygiene + live writer tests) and the first characterization tests (`tests/unit/`). This is the "production-grade /
+  any-engineer-can-step-in" enabler — a green check now *means* something.
+- **§C Intelligence quality is the actual product, and structure doesn't move it.** ✅ **Scoreboard built 2026-06-18**
+  (`scripts/maintenance/intelligence_quality.py`) — validation pass-rate, governance, completeness tiers, source
+  coverage, freshness, volume. First run surfaced real work: **38 unresolved governance violations** (mostly
+  `trial_misattributed_*`), **115/181 drugs untiered** (completeness never computed), **42 orphan source drug_ids**
+  (drug_sources citing non-existent drugs), 17 null source_urls. **Acted 2026-06-18:** ✅ governance **38 → 0** — all `trial_misattributed_*` violations CT.gov-verified and resolved
+  (15 stale + 20 wrong links deleted + 3 false-positives kept; reversible backup in `docs/audits/backups/`). NEXT §C work:
+  the '115 untiered drugs' is a REAL gap (correction: `drugs.completeness_tier` IS actively written by `completeness-scoring.yml` → research_intelligence → upsert_research_queue stamps each drug; an earlier note wrongly called it orphaned — fixed). 115 drugs simply haven't been covered by a scoring run (25 lack a `drug_areas` link → a separate sub-gap). NEXT: run/dispatch `completeness-scoring.yml --area all` (non-LLM, governed, idempotent) to tier them; weekly scoreboard +
+  trend tracking. This is where repo work converts to BD value.
+- **§D The dashboard (index.html, 34k lines) — the surface users actually use — is untouched** (§4/§A.2). Highest product
+  leverage, highest risk; needs browser-verify (recipe ready).
+- **§E Real dedup/clarity debt:** 17 entity-resolution implementations (converge on `entity_matcher`, metric #3);
+  `weekend_sprint` duplicates `company_enrichment`/`compute_coverage`/`source_verifier`/`bd_recommender` logic;
+  51 workflows (operational surface — observability + consolidation candidates). Plus: module-level `os.environ[...]`
+  credential reads at import block clean unit-testing (make them lazy → cashes more of the testability dividend).
+
 ## Now / Next (the short list)
+0. 🟡 **§B safety net** — CI quality gate + unit tests landed (2026-06-18). ✅ Credential reads made fail-soft in the 4
+   split commons (enrichment/company, products/issue, ingestion/ctgov, ingestion/research_pipeline) → pure modules import
+   test-clean with zero secrets; the unit suite dropped its dummy-env crutch. ✅ Characterization tests grown 11 → 16
+   (CT.gov `score_search_match` hard-zero gate = the verekitug/APG777 lesson, multi-phase `parse_ct_study`). NEXT: more
+   dims as touched (`build_step5_prompt` variants, issue/blocks formatters); a few module-level `os.environ[...]` reads
+   remain in non-split scripts (stock_prices, morning_summary, validation/*) — make lazy opportunistically when editing them.
 1. ✅ **One clear data-write path** (§A.1, 2026-06-17) — DONE at code layer; all 4 core tables route pipeline writes through their Writer (scoreboard ✓). Dashboard-feature freeze can lift re: write integrity. Next correctness work: §A.2 UI/logic split, §A.4 audit, §A.5 edge-case tests.
 2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
-3. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).
-4. ⬜ **Large-file splits** — `company_enrichment` (4,437), `write_meridian` (2,391), others (§3).
-5. ⬜ **`index.html` Phase 4** decomposition (§4) — also separates UI from intelligence logic (§A.2).
+3. ⬜ **Decompose `weekend_sprint`** (§2) — supervised (DRY_RUN rebound-global blocker; executable plan in `modularization_plan.md`).
+4. ✅ **Large-file splits DONE** (§3, 2026-06-18) — 9 files split, ≥1000-line bucket **9 → 1**; the one left (`weekend_sprint` 3,001) is §2. Table in `modularization_plan.md`.
+5. ⬜ **`index.html` Phase 4** decomposition (§4 / §A.2) — supervised, browser-verify; Reads-module recipe ready in `INDEX_HTML_DECOMPOSITION_PLAN.md`.
 6. ✅ **`web/` reorg DONE** (§5) — 13 static dashboards → `web/`, root HTML 15→2; 4 secondary docs → `docs/`.
-7. ⬜ **Drift guardrails** wired as a recurring check (§6).
+7. ✅ **Drift guardrails DONE** (§6, 2026-06-18) — `ci-quality-gate.yml` runs compile + unit tests + health(no-cycles) + hygiene + live writer tests on every push/PR.
 
 ---
 
@@ -110,10 +141,20 @@ Already covered elsewhere (weekend_sprint just duplicates): `company_enrichment`
 **Bonus:** the 56-phase list is a good seed for the comprehensive periodic QA/refresh checklist (guardrails §6).
 
 ## 3. Large-file splits (smaller files = humans + Claude can manage them)
-Per `docs/architecture/modularization_plan.md` + `PHASE3_4_EXECUTION_DESIGN.md`. Thin CLI + focused modules ≤ ~300–400 lines.
-- ⬜ `company_enrichment.py` (4,435) — do during its migration (§1).
-- ⬜ `write_meridian.py` (2,391) — do during its migration (§1).
-- ⬜ `drug_intake.py` (1,659) · `research.py` (1,538) · `ct_gov_sync.py` (1,409, fetch/map/write split designed) · `research_intelligence.py` (1,379) · `company_intake.py` (1,185) · `narrative_gen.py` (1,123) · `acquisition_scorer.py` (1,091, manual).
+Per `docs/architecture/modularization_plan.md` + `PHASE3_4_EXECUTION_DESIGN.md`. Thin CLI + focused modules.
+- ✅ `company_enrichment.py` (4,377 → **937** + 11 modules `src/meridian/enrichment/company/`) — DONE 2026-06-17.
+- ✅ `write_meridian.py` (2,387 → **435** + 9 modules `src/meridian/products/issue/`) — DONE 2026-06-17.
+- ✅ `ct_gov_sync.py` (1,409 → **691** + 5 modules `src/meridian/ingestion/ctgov/`, fetch/map/validate/write) — DONE 2026-06-17.
+  All three: byte-identical / AST-guided / writer-test-gated; branch `refactor/section3-company-enrichment-prompts` (not yet pushed).
+  Deferred (supervised): route the `sb_*` raw writes in each `common.py` → the `src/meridian/database` writers via watched `--dry-run`.
+- ✅ `research.py` (1,539→913 + `ingestion/research_pipeline/` {common,pkpd,monitors}) — DONE 2026-06-17.
+- ✅ `research_intelligence.py` (1,379→413 + `scoring/research_intel/` {common,context,scoring,triggers,queue}) — DONE.
+- ✅ `company_intake.py` (1,180→504 + `identity/intake/` {common,research,queue,edges}) — DONE (preserved external `write_active_in_edge` surface).
+- ✅ `narrative_gen.py` (1,123→405 + `products/narrative/` {common,atoms,triangulate}) — DONE (preserved 3-importer surface; fixed a WORKSPACE depth bug).
+- ✅ `drug_intake.py` (1,627→456) — migrated `scripts/`→`ingestion/` + `ingestion/drugintake/` {common,research,scoring,queue}. DONE.
+- ✅ `acquisition_scorer.py` (1,091→197) — migrated `scripts/`→`scoring/` + `scoring/acquisition/` {common,data,scoring,write}; fixed dead-token bug. DONE.
+- **All 9 splittable large files DONE — ≥1000-line bucket 9 → 1.** Remaining: `weekend_sprint.py` (3,001) = §2
+  (decompose the active scheduled orchestrator to *call into* the extracted modules; not a clean §3 split — supervised).
 
 ## 4. `index.html` (34,847 lines) — Phase 4 decomposition
 Per `docs/architecture/INDEX_HTML_MAP.md` + `INDEX_HTML_DECOMPOSITION_PLAN.md`. Extract self-contained JS modules

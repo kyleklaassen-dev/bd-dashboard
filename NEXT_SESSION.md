@@ -1,3 +1,108 @@
+# ✅ §3 large-file splits — write_meridian + ct_gov_sync FULLY SPLIT (2026-06-17, overnight cont.)
+
+Continued the §3 work autonomously (same proven method — see [[section3-split-method]]). Branch
+`refactor/section3-company-enrichment-prompts` (now ~20 commits, NOT pushed — `main` protected).
+**The ≥1000-line health bucket dropped 9→7** (company_enrichment, write_meridian, ct_gov_sync all removed).
+
+- **`write_meridian.py` 2,387 → 435** (orchestrator: generate_editorial_plan / format_plan_block /
+  generate_html / main) + **9 modules** under `src/meridian/products/issue/`: `common` (creds, client,
+  headers, log, AREA_NAMES, fact-check gate), `fetch` (12 Supabase fetch_* + 3 render blocks), `blocks`
+  (8 build_*_block + enrich), `prompts` (SYSTEM/PLAN/DRAFT), `factcheck` (4 verification gates), `links`
+  (first-mention hyperlinker), `persist` (save_to_supabase + plan helpers), `deploy` (GitHub Pages + catalyst
+  sync + priority bump). **External-coupling guard:** `dryrun_meridian.py` does a bare `import write_meridian
+  as wm` + 32 `wm.*` accesses — verified every name still resolves and dryrun_meridian imports clean after
+  each step. Also consolidated all 8 scattered `issue.*` imports into one top-of-file block.
+- **`ct_gov_sync.py` 1,409 → 691** (orchestrator: step3a/b/c, sync_drug, run_sync, get_trials_*) + **5 modules**
+  under `src/meridian/ingestion/ctgov/`: `common` (creds/constants/log/sb_*), `map` (PURE parse_ct_study/
+  score_search_match), `validate`, `fetch`, `write`. Per the documented PHASE3_4 fetch/map/write design.
+  parse_ct_study functional smoke verified (NCT→Recruiting/Phase 2 via the status/phase maps).
+
+Every extraction: AST free-var analysis → byte-identical relocation (all diffs == True) → py_compile +
+import-smoke + writer regression tests (6/0 + 8/0). Entrypoint paths unchanged → no workflow edits.
+
+- **`research.py` 1,539 → 913** (out of the ≥1000 bucket) + 3 modules under `src/meridian/ingestion/research_pipeline/`
+  (named to avoid a `research.py`↔`research/` package collision): `common` (creds/client/log), `pkpd` (the GAP-1
+  PK/PD queue processor), `monitors` (Phase 9/10 competitive monitors). The sources/extract/write helpers + RSS/focus
+  constants stay in research.py (follow-up). NOTE: research.py needs CI-only deps (feedparser/BeautifulSoup) so it
+  can't be import-smoked locally — verified the 3 new modules import standalone + byte-identical + writer tests.
+
+## §3 STATUS: ALL 9 splittable large files SPLIT — ≥1000-line bucket 9 → 1. Full table in
+`docs/architecture/modularization_plan.md` (v2). Done across this arc: company_enrichment, write_meridian,
+ct_gov_sync, research, research_intelligence, company_intake, narrative_gen, **drug_intake** (migrated `scripts/`→
+`ingestion/` + `ingestion/drugintake/`), **acquisition_scorer** (migrated `scripts/`→`scoring/` + `scoring/acquisition/`;
+also fixed a dead-`.github_token` import bug). Flat `scripts/` 32 → 30.
+
+## The ONLY remaining ≥1000 file — `weekend_sprint.py` (3,001) = §2, NOT a clean §3 split
+It's an **active, scheduled** orchestrator (`weekend_sprint.yml`, ~8 Sat crons, LLM). Decompose it to *call into* the
+now-extracted modules rather than duplicate them — a deliberate refactor of live scheduled code → **supervised**, with
+a dispatch-verify. Not the byte-identical relocation pattern.
+
+## ✅ Health scoreboard FIXED (2026-06-18): `meridian_health_metrics.py` keyed the dep graph by file basename,
+so the §3 splits' many same-named submodules (common.py ×9, scoring.py ×3, …) collapsed into single nodes →
+bogus fan-in (ctgov/common showed 36 vs true 5) + ~18 PHANTOM import cycles. Re-keyed to full module path +
+any-length DFS cycle detector → now reports **import cycles: none ✓** and true fan-in. (Verified 0 real cycles
+via an independent full-path import graph.) Branch pushed to origin.
+
+## Remaining = SUPERVISED or marginal (NOT done autonomously — by design):
+- `weekend_sprint.py` (3,001) — §2 decompose of an active scheduled orchestrator (call into the extracted modules). Supervised + dispatch-verify.
+- Route the relocated `sb_*` raw writes (`company/common.py`, `issue/common.py`, `ctgov/common.py`, etc.) → the `src/meridian/database` writers. Semantic write-path change → watched `company-enrichment --dry-run`.
+- index.html Stage-2 extraction — recipe ready in `INDEX_HTML_DECOMPOSITION_PLAN.md`; needs a human browser-verify.
+- (Marginal) finish `research.py` (913) — its sources/extract/write helpers + scattered prompt consts are still inline.
+  Left as-is: zero large-file-metric gain (already <1000), scattered constants raise the error surface, and it's an
+  active 3-workflow pipeline not fully runtime-verifiable locally (feedparser). Do it with feedparser installed if at all.
+- (Bigger) Metric #3 — entity-resolution convergence: 17 files define resolver/matcher symbols; target = converge on `entity_matcher`. Architectural, supervised.
+
+## index.html (§4 / §A.2) — PREP DONE, extraction is supervised-only (2026-06-17)
+Refreshed the tail-module map (line numbers had drifted) + wrote a ready-to-run Stage-2 recipe for the safest first
+target, **Reads** (34754–34844, 91 lines, fully IIFE + typeof-guarded), in `INDEX_HTML_DECOMPOSITION_PLAN.md`.
+**Did NOT mutate index.html** — a local static-server + headless preview could not reliably load the 2.5 MB dashboard
+(landed on chrome-error), empirically confirming the plan's "JS extraction must be browser-verified by a human"
+doctrine. Next session: run the recipe live (a few minutes), glance at the Reads tab, then continue Stage 2 by size.
+A static-server preview config is at `.claude/launch.json`.
+## ⏸ Deferred (supervised): route the `sb_*` raw writes in `company/common.py` + `issue/common.py` +
+`ctgov/common.py` through the `src/meridian/database` writers — a semantic change needing watched `--dry-run` dispatch.
+
+---
+
+# ✅ §3 large-file split — company_enrichment FULLY SPLIT (2026-06-17, cont.)
+
+**`company_enrichment.py` 4,377 → 937 lines** (a thin orchestrator + CLI) by extracting **11 focused
+modules** into a new `src/meridian/enrichment/company/` subpackage. The 4am nightly Intelligence
+Pipeline core is now legible. Branch: `refactor/section3-company-enrichment-prompts` (8 commits,
+9117540 → 5457650 — NOT pushed; `main` is protected, fast-forward when ready).
+
+Modules (none over 940 lines): `common.py` (462 — shared base: creds, LLM client, `_RUN_TOKENS`,
+`sb_*` I/O, `log`, URL/confidence validation, `AREA_LABELS_MAP`) · `prompts.py` (747 — Step-5 prompt
+construction) · `resolve.py` (99) · `discovery.py` (495 — Step 1) · `trials.py` (348 — CT.gov sync +
+context fetch) · `catalysts.py` (150 — Step 4) · `assessment.py` (779 — Step 5 web intel + write_step5) ·
+`molecule.py` (174) · `partnerships.py` (125) · `deals.py` (152 — Step 6) · `scoring.py` (185).
+
+**How it was kept safe (every commit):**
+- **Byte-identical relocations** — each moved block was diffed against the original (all `True`). Method:
+  AST free-variable analysis (`/tmp/freevars.py`) to compute the exact import set + detect any sibling/
+  forward-ref calls before moving, so I never broke a call edge.
+- **Clean star topology** — everything imports `common`; `common` imports no feature module → 0 cycles.
+- **One real bug fixed in flight:** `_catalyst_upsert`'s repo-root anchor `parents[3]→[4]` (the new
+  `company/` dir is one level deeper than the old home). Verified it now resolves to the true repo root.
+- **`_RUN_TOKENS` shared-object identity preserved** (token accounting spans modules — verified `is` same dict).
+- **Verified per step:** py_compile + import-smoke (every relocated name resolves to its module) + writer
+  regression tests **6/0 + 8/0**. Final: full CLI `--help` exercises the whole import chain through all 11
+  modules; repo hygiene 0 hard-fails; health scoreboard — company_enrichment dropped out of the ≥1000-line bucket.
+- Entrypoint path unchanged → `company-enrichment.yml` / `school-week-sprint.yml` need no edits. No external
+  importers of any moved symbol.
+
+## ⏸ Deferred (supervised — needs a watched dispatch, NOT an unattended run):
+- **Route `common.py`'s `sb_*` writes through the `src/meridian/database` writers/client.** This is a
+  *semantic* write-path change (the design's "remove last ad-hoc writes" goal) — verify with a watched
+  `company-enrichment.yml --dry-run` before the real nightly run. Left as a verbatim relocation for now.
+
+## NEXT §3 large-file targets (same method — byte-identical, AST-guided, writer-test-gated):
+`write_meridian.py` (2,387) · `drug_intake.py` (1,627) · `research.py` (1,539) · `ct_gov_sync.py` (1,409).
+`write_meridian` is the next-biggest and feeds the unattended Issue generator (`meridian-preview.yml` has a
+`--dry-run`) → good verifiability. Then §A.2 (index.html UI/logic separation — highest risk, do last).
+
+---
+
 # ✅ §A.4 AUDIT + §A.5 EDGE-CASE TESTS + §3 dedup (2026-06-17, cont.)
 
 - **§A.4 audit — DONE & verified.** v163 migration (APPLIED via Management API): all 4 core tables now audited on
