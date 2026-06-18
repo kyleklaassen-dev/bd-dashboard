@@ -34,6 +34,8 @@ for p in PYFILES:
     lines=read(p).splitlines(); name=p.name; seen=set()
     for i,l in enumerate(lines):
         if not WRITER_VERB.search(l): continue
+        if l.strip().startswith(("#", '"', "'", "*")): continue  # comment / docstring mention, not a call
+        if re.search(r'\w*Writer\s*\([^)]*\)\s*\.(upsert|write)', l): continue  # writer-routed = governed, not raw
         ctx="\n".join(lines[i:i+3])
         if SUBTBL.search(ctx): continue
         for tbl in CORE:
