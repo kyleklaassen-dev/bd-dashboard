@@ -98,10 +98,18 @@ The original Map line numbers had drifted. Verified `<script>…</script>` spans
 | Program Board | 31398–31549 | 152 | (registers `program-board`) |
 | Ontology Audit | 31551–32878 | 1,328 | `ontology` |
 | Audit | 32883–34173 | 1,291 | (registers `audit`) |
-| Saved Views | 34189–34303 | 115 | (panel; localStorage) |
-| Changes Feed | 34305–34602 | 298 | `changes-feed` |
-| Home Preview | 34604–34751 | 148 | `homeprev` |
+| ~~Saved Views~~ | ~~34189–34303~~ | ~~115~~ | ✅ **EXTRACTED 2026-06-18 → `assets/js/saved_views.js`** |
+| ~~Changes Feed~~ | ~~34305–34602~~ | ~~298~~ | ✅ **EXTRACTED 2026-06-18 → `assets/js/changes_feed.js`** |
+| ~~Home Preview~~ | ~~34604–34751~~ | ~~148~~ | ✅ **EXTRACTED 2026-06-18 → `assets/js/home_preview.js`** |
 | ~~Reads~~ | ~~34754–34844~~ | ~~91~~ | ✅ **EXTRACTED 2026-06-18 → `assets/js/reads.js`** |
+
+> **Stage-2 progress (2026-06-18):** the 4 small tail modules (Reads, Home Preview, Changes Feed,
+> Saved Views) are all extracted to `assets/js/*.js` — index.html **34,847 → 34,199 lines** (−648).
+> Each verified via the preview loop (byte-integrity reconstruction + `node --check` + HTTP 200 +
+> tab renders + exposed globals defined + 0 console errors). **Next Stage-2 targets** (larger,
+> still IIFE/registered — re-grep boundaries first): Audit (`audit`, ~1,291), Ontology Audit
+> (`ontology`, ~1,328), Ontology Explorer (~1,817), Program Board, intel2. CSS (Stage 3) and the
+> shared core script #1 (Stage 4, HIGHEST risk) remain after the tab modules.
 
 > **Line-map note:** after the Reads extraction the file is **34,757 lines** (was 34,847); the Reads
 > block is now the one-line `<script src="assets/js/reads.js"></script>` at **line 34754**. The rows
