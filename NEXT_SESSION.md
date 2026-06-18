@@ -1,3 +1,29 @@
+# ✅ §A.2 data fix + §E/§2 designs (2026-06-18, cont.) — safe autonomous surface EXHAUSTED
+
+After the index decomposition (below), pushed through the remaining roadmap with verification:
+- **§A.2 DONE (PR #15):** the UI/logic audit found `_resolveStage` was masking **7 stale `drugs.stage`**
+  values (marketed drugs with a brand_name but a Phase-2/3 stage). Corrected all 7 → `approved_us` via
+  `DrugWriter` (FDA-sourced `drug_sources` rows, reversible backup in `docs/audits/backups/`), then
+  simplified `_resolveStage` to display-normalization only. `drugs.stage` is now the single source of truth.
+  Re-audit B 7→0; 0 governance violations; preview-verified. Right-sized §A.2: `_score`/`canonical`/
+  `partnership_verified` are already server-authoritative or pure display (see `A2_UI_LOGIC_SEPARATION.md`).
+- **§E right-sized + audited (PRs #16, #19):** 19 "resolver" hits → ~11 real (writers already on
+  `entity_matcher`; 5 false positives). Equivalence audit proved the `resolve_company_id` unification is a
+  real matching change (6 divergent cases on paren-named companies) → **supervised** (`E_ENTITY_RESOLUTION_CONVERGENCE.md`).
+- **§2 turnkey design (PR #17):** `weekend_sprint` decompose → `ops/weekend/{common,audit,enrich}`; the
+  `DRY_RUN` rebound-global blocker is solved with a `set_dry_run/is_dry_run` accessor (`WEEKEND_SPRINT_DECOMPOSE_DESIGN.md`).
+- **§B tests 11→22 (PR #18):** + bispecific detection + the field-consistency validator.
+
+**The only remaining EXECUTIONS are supervised** (their own governance gates them):
+1. **`weekend_sprint` decompose** — live Saturday cron that writes prod DB; a `DRY_RUN` slip = unintended
+   writes. Design is turnkey; gate = a watched `--dry-run` dispatch before the next Saturday run.
+2. **§E resolver convergence** — changes identity matching → dedup/merges on core tables; gate = a
+   before/after match-set diff + `meridian-research` dispatch.
+Next session (with Kyle available): implement #1 from its design doc, verify `--dry-run` shows `[DRY RUN]`
+everywhere + 0 DB writes, then let the cron run live once watched.
+
+---
+
 # ✅ index.html decomposition COMPLETE + §B safety net hardened (2026-06-18)
 
 **All §3 work merged to `main`** (PR #4) along with the completeness-scorer fix, CI quality gate,
