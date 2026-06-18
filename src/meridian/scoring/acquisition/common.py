@@ -7,6 +7,7 @@ import json
 import urllib.request
 import urllib.error
 from datetime import datetime, date
+import sys
 
 
 SUPA_URL = "https://tghntyofptvfhmtchwcv.supabase.co/rest/v1"

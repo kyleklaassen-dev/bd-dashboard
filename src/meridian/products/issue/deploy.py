@@ -18,6 +18,7 @@ from meridian.products.issue.common import (
     SUPABASE_URL, SUPABASE_ANON_KEY, SB_HEADERS, GH_HEADERS, GITHUB_REPO, log,
 )
 from meridian.database.catalyst_writer import CatalystWriter
+import os
 
 
 # ── Commit HTML to GitHub Pages via blob API ─────────────────────────────────

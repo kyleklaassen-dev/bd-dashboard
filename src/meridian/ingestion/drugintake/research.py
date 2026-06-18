@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 
 from meridian.ingestion.drugintake.common import _get_ai, ACTIVE_AREAS, _sb_headers, SUPABASE_URL, SUPABASE_KEY
+import os
 
 
 # ══════════════════════════════════════════════════════════════════════════════

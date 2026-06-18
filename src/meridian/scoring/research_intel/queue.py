@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+import json
+
+import requests
+
 from meridian.scoring.research_intel.common import _now_iso, _sb_patch
 
 
@@ -95,7 +99,7 @@ def upsert_research_queue(
     drugs = ctx.get("drugs", [])
     company_id = drugs[0].get("company_id") if drugs else None
     entity_name = (
-        drugs[0].get("drug_name")
+        (drugs[0].get("drug_name") if drugs else None)
         or (ctx.get("company") or {}).get("company_name")
         or entity_id
     )

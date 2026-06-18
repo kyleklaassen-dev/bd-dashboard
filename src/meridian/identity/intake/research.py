@@ -7,6 +7,7 @@ import json
 
 from meridian.identity.company_identity_resolver import CompanyIdentityResolver
 from meridian.identity.intake.common import _get_ai, ACTIVE_AREAS, SUPABASE_URL, SUPABASE_KEY
+import os
 
 
 # ══════════════════════════════════════════════════════════════════════════════

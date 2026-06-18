@@ -49,10 +49,15 @@ def load_entity_context(
         "entity_id": f"eq.{entity_id}",
         "select": "*",
     })
+    if not drugs:
+        # No drug shares this entity_id. For an entity-LESS drug, run_intelligence_audit passes
+        # the drug's own id as entity_id (real_entity_id = entity_drugs[0]["id"]). Fall back to
+        # fetching that single drug by id, so it can still be scored. Without this, every drug with
+        # a NULL entity_id loaded an empty ctx → IndexError in upsert_research_queue → left untiered.
+        drugs = _sb_get(sb_url, sb_key, "drugs", {"id": f"eq.{entity_id}", "select": "*"})
     ctx["drugs"] = drugs
 
     if not drugs:
-        # Try to find by company + area even if entity_id not set yet
         return ctx
 
     drug_ids = [d["id"] for d in drugs]

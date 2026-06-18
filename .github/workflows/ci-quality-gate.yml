@@ -27,6 +27,8 @@ jobs:
         run: pip install -r scripts/requirements.txt
       - name: Byte-compile all Python (syntax gate)
         run: python -m compileall -q src scripts tests
+      - name: Undefined-name check (catch missing imports compile can't see)
+        run: python scripts/maintenance/check_undefined_names.py
       - name: Pure-function characterization tests
         run: python tests/unit/test_pure_functions.py
       - name: Structural health — fail on any import cycle

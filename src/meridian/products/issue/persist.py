@@ -13,6 +13,7 @@ import hashlib
 import requests
 
 from meridian.products.issue.common import SUPABASE_URL, SB_HEADERS, log
+import os
 
 
 # ── Editorial plan helpers ────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Persist results to Supabase + JSON + GitHub (§3 acquisition_scorer split)."""
 
+import os
+import sys
 import json
 import base64
 import urllib.request
