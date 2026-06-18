@@ -1,0 +1,94 @@
+/* Industry Insights Tab */
+.ii-filter-bar { display:flex; gap:8px; flex-wrap:wrap; padding:12px 24px 16px; max-width:860px; width:calc(100% - 48px); margin:0 auto; }
+.ii-filter-btn { padding:5px 14px; border-radius:20px; border:1.5px solid #cbd5e1; background:#fff; font-size:11px; font-weight:600; cursor:pointer; color:#475569; transition:all 0.15s; }
+.ii-filter-btn.active, .ii-filter-btn:hover { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+.ii-month { margin:0 auto 24px; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); overflow:hidden; background:#fff; max-width:860px; width:calc(100% - 48px); }
+
+/* ── Rolling Deal Tracker ──────────────────────────────────────────── */
+.rdt-wrap { padding:0 24px 24px; }
+.rdt-hd { display:flex; align-items:baseline; gap:10px; margin-bottom:12px; }
+.rdt-hd-title { font-size:13px; font-weight:800; color:#1e3a5f; }
+.rdt-hd-sub { font-size:11px; color:#94a3b8; }
+.rdt-scroll { overflow-x:auto; border-radius:10px; border:1px solid #e2e8f0; }
+.rdt-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+.rdt-table th { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; padding:9px 12px; border-bottom:2px solid #e2e8f0; text-align:left; background:#f8fafc; white-space:nowrap; position:relative; user-select:none; }
+.rdt-col-handle { position:absolute; right:0; top:0; bottom:0; width:6px; cursor:col-resize; background:transparent; z-index:2; border-right:2px solid transparent; transition:border-color .15s; }
+.rdt-col-handle:hover, .rdt-col-handle.dragging { border-right-color:#1e3a5f; background:rgba(30,58,95,.08); }
+.rdt-table td { padding:9px 12px; border-bottom:1px solid #f0f4f8; vertical-align:top; line-height:1.4; }
+.rdt-table tr:last-child td { border-bottom:none; }
+.rdt-table tr:hover td { background:#f8faff; }
+.rdt-date { color:#64748b; white-space:nowrap; font-size:11px; }
+.rdt-co { font-weight:700; white-space:nowrap; font-size:11.5px; }
+.rdt-co.hi-lilly  { color:#b91c1c; background:#fef2f2; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-sanofi { color:#c2410c; background:#fff7ed; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-takeda { color:#92400e; background:#fffbeb; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-abbvie { color:#6d28d9; background:#f5f3ff; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-roche  { color:#1d4ed8; background:#eff6ff; padding:1px 6px; border-radius:4px; }
+.rdt-co.hi-gilead { color:#0f766e; background:#f0fdfa; padding:1px 6px; border-radius:4px; }
+.rdt-focus { max-width:200px; color:#1e293b; }
+.rdt-mod { font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; display:inline-block; }
+.rdt-mod-ai    { background:#ede9fe; color:#5b21b6; }
+.rdt-mod-tce   { background:#fce7f3; color:#9d174d; }
+.rdt-mod-bio   { background:#dcfce7; color:#166534; }
+.rdt-mod-cell  { background:#e0f2fe; color:#0c4a6e; }
+.rdt-mod-oral  { background:#fef9c3; color:#713f12; }
+.rdt-mod-area  { background:#dbeafe; color:#1e40af; }
+.rdt-mod-def   { background:#f1f5f9; color:#475569; }
+.rdt-econ  { color:#1e293b; min-width:160px; font-size:11px; }
+.rdt-rat   { color:#475569; max-width:260px; font-size:11px; }
+.rdt-load-btn { margin:10px 0 0; padding:7px 20px; background:#1e3a5f; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; transition:background 0.15s; }
+.rdt-load-btn:hover { background:#2e5090; }
+
+/* ── II Live Intel Feed ────────────────────────────────────────────── */
+.ii-live-wrap { padding:16px 24px 4px; }
+.ii-live-hd { font-size:12px; font-weight:800; color:#1e3a5f; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.ii-live-area { font-size:9px; font-weight:700; color:white; padding:2px 7px; border-radius:8px; }
+/* Collapsed intel rows */
+.ii-item { border-bottom:1px solid #f0f4f8; cursor:pointer; }
+.ii-item:hover .ii-item-row { background:#f8fafc; }
+.ii-item-row { display:flex; align-items:center; gap:7px; padding:7px 4px; }
+.ii-item-dot { flex-shrink:0; font-size:11px; }
+.ii-item-areas { display:flex; gap:3px; flex-shrink:0; flex-wrap:nowrap; }
+.ii-item-headline { flex:1; font-size:12px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.ii-item-date { font-size:10px; color:#94a3b8; white-space:nowrap; flex-shrink:0; }
+.ii-item-chevron { font-size:9px; color:#94a3b8; flex-shrink:0; width:12px; text-align:center; transition:transform .15s; }
+.ii-item-detail { display:none; padding:4px 4px 10px 24px; }
+.ii-item-detail.open { display:block; }
+.ii-item-detail-body { font-size:11px; color:#475569; line-height:1.5; margin-bottom:4px; }
+.ii-item-detail-meta { font-size:10px; color:#94a3b8; }
+.ii-month-hd { padding:14px 18px; background:#1e3a5f; color:#fff; font-weight:700; font-size:14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+.ii-month-hd span { font-size:11px; font-weight:400; opacity:0.7; }
+.ii-month-body { padding:0; }
+.ii-week { border-bottom:1px solid #f1f5f9; }
+.ii-week-hd { padding:10px 18px; background:#f8fafc; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; display:flex; align-items:center; gap:8px; }
+.ii-week-hd::before { content:''; width:3px; height:14px; background:#3b82f6; border-radius:2px; }
+.ii-items { padding:8px 0; }
+.ii-card { padding:12px 18px; border-bottom:1px solid #f8fafc; display:none; }
+.ii-card.visible { display:block; }
+.ii-card:last-child { border-bottom:none; }
+.ii-card-hd { display:flex; gap:10px; align-items:flex-start; margin-bottom:6px; }
+.ii-date-badge { font-size:10px; font-weight:700; color:#6366f1; background:#eef2ff; padding:2px 7px; border-radius:4px; white-space:nowrap; margin-top:2px; }
+.ii-title { font-size:13px; font-weight:700; color:#1e293b; line-height:1.4; }
+.ii-title a { color:#1e3a5f; text-decoration:none; }
+.ii-title a:hover { text-decoration:underline; }
+.ii-card-meta { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; padding-left:72px; }
+.ii-source { font-size:10px; color:#64748b; background:#f1f5f9; padding:2px 7px; border-radius:4px; font-weight:500; }
+.ii-tag { font-size:9px; font-weight:700; padding:2px 7px; border-radius:10px; }
+.ii-tag-deals { background:#dbeafe; color:#1e40af; }
+.ii-tag-clinical { background:#d1fae5; color:#065f46; }
+.ii-tag-ai-tech { background:#ede9fe; color:#5b21b6; }
+.ii-tag-policy { background:#fee2e2; color:#991b1b; }
+.ii-tag-market { background:#fef3c7; color:#92400e; }
+.ii-tag-bd { background:#fce7f3; color:#9d174d; }
+.ii-bullets { padding-left:72px; }
+.ii-bullets ul { margin:0; padding:0 0 0 16px; }
+.ii-bullets li { font-size:11.5px; color:#374151; line-height:1.65; padding:2px 0; }
+.ii-img { padding-left:72px; margin-top:8px; }
+.ii-img img { max-width:100%; border-radius:8px; border:1px solid #e2e8f0; }
+.ii-toggle { font-size:10px; color:#6366f1; cursor:pointer; margin-left:72px; margin-top:4px; display:inline-block; }
+.ii-stats-bar { display:flex; gap:24px; padding:12px 24px; background:#f8fafc; border-bottom:1px solid #e2e8f0; flex-wrap:wrap; max-width:860px; width:calc(100% - 48px); margin:0 auto; }
+.ii-stat { text-align:center; }
+.ii-stat-val { font-size:20px; font-weight:800; color:#1e3a5f; }
+.ii-stat-lbl { font-size:10px; color:#64748b; text-transform:uppercase; }
+.ii-monthly-summary { background:#fffbeb; border-left:4px solid #f59e0b; padding:12px 18px; margin:8px 0; font-size:12px; }
+.ii-monthly-summary li { padding:3px 0; color:#374151; }

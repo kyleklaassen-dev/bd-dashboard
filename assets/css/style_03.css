@@ -1,0 +1,113 @@
+  .pi-main-row { cursor:pointer; }
+  .pi-main-row:hover td { background:#f0f7ff !important; }
+  .pi-dr-row { display:none; }
+  .pi-dr-body { padding:14px 16px; background:#f8fafc; border-top:1px dashed #cbd5e1; }
+  .pi-dr-summary { font-size:12px; color:#374151; line-height:1.7; margin-bottom:10px; }
+  .pi-dr-prs { margin:0; padding:0; list-style:none; }
+  .pi-dr-pr { display:flex; gap:8px; align-items:baseline; padding:4px 0; border-bottom:1px solid #f1f5f9; font-size:11px; }
+  .pi-dr-pr:last-child { border-bottom:none; }
+  .pi-dr-pr-date { color:#6366f1; font-weight:700; white-space:nowrap; min-width:56px; }
+  .pi-dr-pr-link { color:#1d4ed8; text-decoration:none; }
+  .pi-dr-pr-link:hover { text-decoration:underline; }
+  .pi-dr-hd { font-size:10px; font-weight:700; text-transform:uppercase; color:#6366f1; letter-spacing:0.05em; margin-bottom:6px; }
+  .pi-chevron { font-size:9px; color:#94a3b8; margin-left:4px; transition:transform 0.2s; display:inline-block; }
+  .pi-chevron.open { transform:rotate(180deg); }
+
+/* ── Industry Insights Feed v2 ─────────────────────────────────────────────── */
+#iif-wrap { max-width:900px; margin:0 auto; padding:18px 20px 48px; }
+#iif-filter-bar { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid #f1f5f9; }
+.iif-pill { background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; font-size:12px; font-weight:600; padding:5px 14px; border-radius:20px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.iif-pill:hover { background:#e2e8f0; color:#1e293b; }
+.iif-pill.active { background:#1e3a5f; color:white; border-color:#1e3a5f; }
+.iif-card { background:white; border:1px solid #e8edf2; border-radius:10px; padding:0; margin-bottom:8px; transition:box-shadow .15s; overflow:hidden; display:flex; align-items:stretch; cursor:default; }
+.iif-card:hover { box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+.iif-card-inner { flex:1; min-width:0; padding:13px 16px 11px; }
+.iif-card-top { display:flex; align-items:center; gap:7px; margin-bottom:7px; flex-wrap:wrap; }
+.iif-date { font-size:10.5px; color:#94a3b8; font-weight:600; white-space:nowrap; }
+.iif-type-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:8px; white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
+.iif-area-pill { font-size:10px; font-weight:600; padding:1px 7px; border-radius:6px; white-space:nowrap; }
+.iif-headline { font-size:13px; font-weight:700; color:#1e293b; line-height:1.45; text-decoration:none; display:block; }
+.iif-headline:hover { color:#1d4ed8; text-decoration:underline; }
+.iif-body-text { font-size:12px; color:#475569; line-height:1.55; margin-top:9px; padding-top:9px; border-top:1px solid #f1f5f9; display:none; }
+.iif-body-text.open { display:block; }
+.iif-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.iif-sources { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.iif-source-link { font-size:11px; color:#2563eb; text-decoration:none; font-weight:500; }
+.iif-source-link:hover { text-decoration:underline; }
+.iif-source-dd-wrap { position:relative; display:inline-block; }
+.iif-source-dd-btn { font-size:11px; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:3px 9px; cursor:pointer; font-weight:600; }
+.iif-source-dd-btn:hover { background:#f1f5f9; }
+.iif-source-dd { display:none; position:absolute; top:calc(100% + 4px); left:0; background:white; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.1); min-width:260px; max-width:360px; z-index:200; padding:4px 0; }
+.iif-source-dd.open { display:block; }
+.iif-source-dd-item { display:flex; align-items:center; gap:8px; padding:7px 12px; font-size:11px; cursor:pointer; text-decoration:none; color:#1e293b; }
+.iif-source-dd-item:hover { background:#f8fafc; }
+.iif-expand-icon { font-size:10px; color:#cbd5e1; margin-left:auto; flex-shrink:0; transition:transform .15s; cursor:pointer; }
+.iif-card.open .iif-expand-icon { transform:rotate(180deg); }
+.iif-day-sep { font-size:10.5px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin:22px 0 9px; padding-bottom:7px; border-bottom:1px solid #f1f5f9; }
+.iif-empty { text-align:center; padding:48px 20px; color:#94a3b8; font-size:13px; }
+.iif-loading { text-align:center; padding:48px 20px; color:#94a3b8; font-size:12px; }
+.iif-archive-wrap { max-width:900px; margin:0 auto; padding:0 20px 40px; }
+.iif-archive-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; padding:12px 0; border-top:1px solid #e2e8f0; color:#64748b; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; user-select:none; list-style:none; }
+.iif-archive-toggle::-webkit-details-marker { display:none; }
+.iif-archive-toggle::after { content:'▾'; font-size:11px; margin-left:4px; transition:transform .15s; }
+details[open] .iif-archive-toggle::after { transform:rotate(180deg); }
+/* Type badge palette */
+.iif-type-clinical { background:#dbeafe; color:#1e40af; }
+.iif-type-catalyst { background:#ede9fe; color:#6d28d9; }
+.iif-type-deal { background:#d1fae5; color:#065f46; }
+.iif-type-regulatory { background:#fef9c3; color:#854d0e; }
+.iif-type-pipeline { background:#e0e7ff; color:#3730a3; }
+.iif-type-financing { background:#cffafe; color:#164e63; }
+.iif-type-conference { background:#fce7f3; color:#9d174d; }
+.iif-type-publication { background:#f1f5f9; color:#334155; }
+.iif-type-patent { background:#f5f3ff; color:#5b21b6; }
+.iif-type-news { background:#f8fafc; color:#64748b; }
+/* Area pill palette */
+.iif-area-tl1a { background:#dbeafe; color:#1d4ed8; }
+.iif-area-tslp { background:#d1fae5; color:#047857; }
+.iif-area-il4ra { background:#e0f2fe; color:#0369a1; }
+.iif-area-igf1r { background:#fde8d8; color:#c2410c; }
+.iif-area-fcrn { background:#ede9fe; color:#7c3aed; }
+.iif-area-ted { background:#fef9c3; color:#78350f; }
+.iif-area-respiratory { background:#d1fae5; color:#047857; }
+.iif-area-ibd { background:#dbeafe; color:#1d4ed8; }
+.iif-area-default { background:#f1f5f9; color:#64748b; }
+/* Industry Insights — Sticky Sidebar Layout */
+#iif-layout { display:flex; align-items:flex-start; min-height:100vh; }
+#iif-sidebar { width:200px; flex-shrink:0; position:sticky; top:90px; height:calc(100vh - 90px); overflow-y:auto; background:#f6f9fc; border-right:1px solid #e4edf5; padding:16px 12px 40px; box-sizing:border-box; }
+#iif-main { flex:1; min-width:0; padding:0 24px 48px; }
+.iif-sb-section { margin-bottom:16px; }
+.iif-sb-label { display:block; font-size:8.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:#9aafc8; margin-bottom:5px; }
+.iif-sb-pills { display:flex; flex-wrap:wrap; gap:3px; }
+.iif-sb-pill { background:none; border:1px solid #d8e6f0; font-size:11px; font-weight:500; color:#4a6080; padding:3px 9px; border-radius:12px; cursor:pointer; white-space:nowrap; transition:background .1s, color .1s, border-color .1s; }
+.iif-sb-pill:hover { background:#e8f0fa; border-color:#b8cee0; }
+.iif-sb-pill.active { background:#1e4a82; color:white; border-color:#1e4a82; font-weight:600; }
+.iif-sb-select { width:100%; padding:5px 8px; border:1px solid #d8e6f0; border-radius:8px; font-size:11.5px; color:#2a3f5f; background:#fff; cursor:pointer; box-sizing:border-box; }
+.iif-sb-select:focus { outline:none; border-color:#1e4a82; }
+.iif-sb-reset { display:block; width:100%; margin-top:6px; padding:6px; background:none; border:1px solid #d8e6f0; border-radius:8px; font-size:11px; font-weight:700; color:#94a8c0; cursor:pointer; transition:background .1s; }
+.iif-sb-reset:hover { background:#e8f0fa; color:#1e4a82; }
+/* Day separator with right-aligned count */
+.iif-day-sep { display:flex; align-items:center; justify-content:space-between; font-size:10.5px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:#94a3b8; padding:18px 0 8px; border-bottom:1px solid #eef2f7; margin-bottom:8px; }
+.iif-day-count { font-size:10.5px; font-weight:600; color:#b0bec8; letter-spacing:0; text-transform:none; }
+/* Source badge */
+.iif-source-badge { font-size:9px; font-weight:800; padding:1px 6px; border-radius:5px; text-transform:uppercase; letter-spacing:.06em; }
+.iif-source-badge-intel { background:#1e3a5f; color:white; }
+.iif-source-badge-news  { background:#0369a1; color:white; }
+.iif-source-badge-signal { background:#6d28d9; color:white; }
+.iif-source-badge-deal  { background:#065f46; color:white; }
+/* Company chip in card */
+.iif-company-name { font-size:10.5px; font-weight:700; color:#1e40af; background:#eff6ff; border-radius:5px; padding:1px 6px; }
+/* Results bar */
+#iif-results-bar { font-size:11px; color:#94a3b8; font-weight:600; margin-bottom:10px; min-height:16px; }
+/* Event type badge additions */
+.iif-type-clinical_data { background:#dbeafe; color:#1e40af; }
+.iif-type-market { background:#fef3c7; color:#92400e; }
+.iif-type-partnership { background:#d1fae5; color:#065f46; }
+.iif-type-other { background:#f1f5f9; color:#64748b; }
+.iif-type-signal { background:#f5f3ff; color:#5b21b6; }
+/* Card relevance bar */
+.iif-card-rel { width:4px; flex-shrink:0; align-self:stretch; border-radius:0; }
+.iif-card-rel-high   { background:#22c55e; }
+.iif-card-rel-medium { background:#f59e0b; }
+.iif-card-rel-low    { background:#e8edf2; }
+
