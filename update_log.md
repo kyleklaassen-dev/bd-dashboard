@@ -3,7 +3,22 @@
 
 ---
 
-## 2026-06-18 — governance triage: 15 stale `trial_misattributed` resolved (38 → 23 open)
+## 2026-06-18 — governance: ALL 38 `trial_misattributed` resolved (38 → 0), CT.gov-verified
+
+Completed the governance correction with online verification per the directive. Every one of the 38 open
+`trial_misattributed_*` violations was checked against the **authoritative CT.gov record** (API v2 interventions/
+sponsor/studyType), not a token-matcher:
+- **15 STALE** → resolved (link already absent everywhere).
+- **20 REMOVE** → deleted the wrong link (6 `trials` + 18 `drug_sources` rows) where CT.gov shows a different asset
+  (apg279←APG777, kt501←SAR446523, mepolizumab←GSK5784283, mt-251←MT-201, spx306←SPX-303, win027←WIN378, …) or a pure
+  observational registry (PsoBest, I-CARE 2, BioDay, COMPARE-PIBD, eczema registry, …), then resolved.
+- **3 KEEP** → false positives retained: `verekitug--upb-101` (ints=Verekitug), the AbbVie risankizumab/lutikizumab/
+  trosunilimab combo, `spy230` (Spyre combination in the SPY001/002/003 platform trial). Validator slug-match had missed them.
+Reversible backup committed at `docs/audits/backups/governance_fix_backup_2026-06-18.json`; full record in
+`docs/audits/GOVERNANCE_TRIAGE_trial_misattributed_2026-06-18.md`. Scoreboard governance now **0 unresolved**;
+regression gate green (writers 8/0 + 6/0, edge-cases 9/0). No edges were orphaned (none referenced the bad NCTs).
+
+## 2026-06-18 — governance triage: 15 stale `trial_misattributed` resolved (38 → 23 open) [superseded above]
 
 The new intelligence-quality scoreboard surfaced 38 open `trial_misattributed_*` governance violations. Read-only
 investigation (CT.gov-verified) found they're a MIX, not uniform:

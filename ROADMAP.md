@@ -28,10 +28,9 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
   (`scripts/maintenance/intelligence_quality.py`) — validation pass-rate, governance, completeness tiers, source
   coverage, freshness, volume. First run surfaced real work: **38 unresolved governance violations** (mostly
   `trial_misattributed_*`), **115/181 drugs untiered** (completeness never computed), **42 orphan source drug_ids**
-  (drug_sources citing non-existent drugs), 17 null source_urls. **Acted 2026-06-18:** triaged the 38 governance
-  violations → resolved 15 verified-stale (38→23 open); the 23 live mislinks are escalated with CT.gov evidence in
-  `docs/audits/GOVERNANCE_TRIAGE_trial_misattributed_2026-06-18.md` (deletes → Kyle's approval). NEXT: approve/execute
-  that 23-row fix batch; tier the 115 untiered drugs (run the completeness scorer); consider a weekly scoreboard run +
+  (drug_sources citing non-existent drugs), 17 null source_urls. **Acted 2026-06-18:** ✅ governance **38 → 0** — all `trial_misattributed_*` violations CT.gov-verified and resolved
+  (15 stale + 20 wrong links deleted + 3 false-positives kept; reversible backup in `docs/audits/backups/`). NEXT §C work:
+  tier the 115 untiered drugs (run the completeness scorer — non-destructive); revisit source coverage; weekly scoreboard +
   trend tracking. This is where repo work converts to BD value.
 - **§D The dashboard (index.html, 34k lines) — the surface users actually use — is untouched** (§4/§A.2). Highest product
   leverage, highest risk; needs browser-verify (recipe ready).
