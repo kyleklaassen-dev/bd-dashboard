@@ -24,37 +24,51 @@ from atlas.parse import load_workflows, name_index
 
 st.set_page_config(page_title="Meridian Workflow Atlas", page_icon="🗺️", layout="wide")
 
-# ── compact mode: smaller type, but with enough line-height/spacing that
-#    nothing overlaps. Fonts are reduced; vertical rhythm is preserved. ────────
+# ── Workflow Atlas design system — one standardized type scale & rhythm ───────
+#  H1 page title · H2 section (with divider) · H3 minor · body · caption.
+#  Every page uses these same tokens so sizing stays consistent everywhere.
 st.markdown("""
 <style>
-  .block-container { padding-top: 2.6rem; padding-bottom: 2rem; max-width: 1280px; }
-  /* headings — smaller, with real top/bottom margins so they don't touch text */
-  h1, [data-testid="stHeading"] h1 { font-size: 1.4rem !important; line-height: 1.3 !important; margin: .2rem 0 .55rem !important; }
-  h2 { font-size: 1.05rem !important; line-height: 1.3 !important; margin: .9rem 0 .35rem !important; }
-  h3 { font-size: .92rem !important; line-height: 1.3 !important; margin: .6rem 0 .25rem !important; font-weight: 600; }
-  h4 { font-size: .85rem !important; line-height: 1.3 !important; margin: .45rem 0 .2rem !important; }
-  /* body text — comfortable line-height, clear bottom margin (fixes overlap) */
+  .block-container { padding-top: 2.6rem; padding-bottom: 3rem; max-width: 1160px; }
+
+  /* H1 — page title (one per page) */
+  h1, [data-testid="stHeading"] h1 { font-size: 1.5rem !important; font-weight: 700 !important;
+       line-height: 1.25 !important; margin: 0 0 .6rem !important; }
+
+  /* H2 — section header; the page backbone. Clearly above body + a divider rule. */
+  h2 { font-size: 1.12rem !important; font-weight: 650 !important; line-height: 1.3 !important;
+       margin: 1.6rem 0 .55rem !important; padding-bottom: .28rem !important;
+       border-bottom: 1px solid rgba(130,130,130,.20) !important; }
+
+  /* H3 / H4 — minor headers */
+  h3 { font-size: .98rem !important; font-weight: 600 !important; line-height: 1.3 !important; margin: .85rem 0 .3rem !important; }
+  h4 { font-size: .9rem  !important; font-weight: 600 !important; line-height: 1.3 !important; margin: .6rem 0 .25rem !important; }
+
+  /* Body */
   [data-testid="stMarkdownContainer"] p,
-  [data-testid="stMarkdownContainer"] li { font-size: .82rem !important; line-height: 1.5 !important; margin-bottom: .4rem !important; }
-  [data-testid="stMarkdownContainer"] code { font-size: .76rem !important; }
-  [data-testid="stCaptionContainer"] p { font-size: .72rem !important; line-height: 1.45 !important; margin-bottom: .3rem !important; }
-  /* keep a little air between stacked elements — not so little they collide */
-  [data-testid="stVerticalBlock"] { gap: .55rem !important; }
-  [data-testid="stHorizontalBlock"] { gap: .8rem !important; }
-  hr { margin: .5rem 0 !important; }
-  /* nav buttons */
-  .stButton button { padding: .2rem .55rem !important; }
-  .stButton button p { font-size: .78rem !important; margin: 0 !important; line-height: 1.3 !important; }
-  /* metrics */
-  [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
-  [data-testid="stMetricLabel"] p { font-size: .72rem !important; }
-  [data-testid="stMetricDelta"] { font-size: .7rem !important; }
-  /* expanders + inputs */
-  [data-testid="stExpander"] summary p { font-size: .8rem !important; }
-  [data-testid="stSidebar"] .stButton button p { font-size: .76rem !important; }
-  [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { font-size: .78rem !important; }
-  .stRadio label p, .stMultiSelect label p, .stTextInput label p { font-size: .78rem !important; }
+  [data-testid="stMarkdownContainer"] li { font-size: .9rem !important; line-height: 1.55 !important; margin: 0 0 .45rem !important; }
+  [data-testid="stMarkdownContainer"] code { font-size: .84rem !important; padding: .04rem .3rem !important; }
+  [data-testid="stCaptionContainer"] p { font-size: .8rem !important; line-height: 1.45 !important; margin: 0 0 .3rem !important; }
+
+  /* Consistent vertical/horizontal rhythm */
+  [data-testid="stVerticalBlock"] { gap: .6rem !important; }
+  [data-testid="stHorizontalBlock"] { gap: 1rem !important; }
+  hr { margin: .6rem 0 !important; }
+
+  /* Metrics — value dominant, label quiet & uppercase (consistent everywhere) */
+  [data-testid="stMetricValue"] { font-size: 1.45rem !important; font-weight: 700 !important; line-height: 1.1 !important; }
+  [data-testid="stMetricLabel"] p { font-size: .74rem !important; text-transform: uppercase; letter-spacing: .02em; opacity: .72; }
+  [data-testid="stMetricDelta"] { font-size: .72rem !important; }
+
+  /* Buttons */
+  .stButton button { padding: .26rem .6rem !important; }
+  .stButton button p { font-size: .82rem !important; margin: 0 !important; line-height: 1.3 !important; }
+
+  /* Expanders + inputs */
+  [data-testid="stExpander"] summary p { font-size: .84rem !important; }
+  [data-testid="stSidebar"] .stButton button p { font-size: .8rem !important; }
+  [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { font-size: .82rem !important; }
+  .stRadio label p, .stMultiSelect label p, .stTextInput label p { font-size: .82rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -315,14 +329,6 @@ def page_workflow(filename: str):
                    "The same layout is generated for all 52; this is the clearest one "
                    "to learn the shape from.")
 
-    # plain-English one-liner subtitle
-    summary = ""
-    if scripts and scripts[0][1].doc:
-        summary = scripts[0][1].doc.strip().splitlines()[0]
-    summary = summary or _yaml_header(wf.raw_yaml)
-    if summary:
-        st.markdown(f"*{summary}*")
-
     # ── 1. WHEN ──────────────────────────────────────────────────────────
     st.subheader("1 · When does it run?")
     c1, c2, c3 = st.columns(3)
@@ -339,6 +345,7 @@ def page_workflow(filename: str):
         st.caption("⚠️ No concurrency group — a slow run could overlap the next.")
 
     # ── 2. WHY ───────────────────────────────────────────────────────────
+    # purpose stated once here; section 4 is the "how", not a repeat of the "what"
     st.subheader("2 · Why does it exist?")
     why = _yaml_header(wf.raw_yaml)
     if not why and scripts and scripts[0][1].doc:
@@ -351,8 +358,12 @@ def page_workflow(filename: str):
         st.caption("No python entrypoint — this workflow uses actions / shell only.")
     for ep, sc in scripts:
         kind = "self-contained" if sc.funcs else "thin wrapper"
-        st.markdown(f"- `{ep.path}` · **{ep.loc} lines**, {len(sc.funcs)} functions "
-                    f"({kind})")
+        purpose = sc.doc.strip().splitlines()[0] if sc.doc else ""
+        line = (f"- `{ep.path}` · **{ep.loc} lines**, {len(sc.funcs)} functions "
+                f"({kind})")
+        if purpose:
+            line += f"  \n  ↳ {purpose}"
+        st.markdown(line)
 
     # ── 4 & 5. HOW + FUNCTIONS ───────────────────────────────────────────
     for ep, sc in scripts:
@@ -360,7 +371,6 @@ def page_workflow(filename: str):
             st.warning(f"Could not parse `{ep.path}`: {sc.parse_error}")
             continue
         st.subheader(f"4 · How does `{ep.path.split('/')[-1]}` run?")
-        st.markdown("**What it's for:** " + (sc.doc or "_no module docstring_"))
         st.markdown("**Step by step** — what it actually does, in order:")
         st.graphviz_chart(plain_flow_dot(sc, trigger=wf.cadence_detail), width="content")
         with st.expander("Technical call graph (function names)"):
