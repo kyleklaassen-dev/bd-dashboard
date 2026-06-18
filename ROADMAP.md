@@ -4,7 +4,7 @@
 lost — so put it here. `PRIORITY.md` = what's active *right now*; `NEXT_SESSION.md` = the last
 session's handoff; **this file = everything still to do, by theme, with enough context to pick it up cold.**
 
-Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · ✅ done (kept briefly, then pruned).
+Last updated: 2026-06-18. Status legend: ⬜ not started · 🟡 in progress · ✅ done (kept briefly, then pruned).
 
 ---
 
@@ -30,7 +30,7 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
   `trial_misattributed_*`), **115/181 drugs untiered** (completeness never computed), **42 orphan source drug_ids**
   (drug_sources citing non-existent drugs), 17 null source_urls. **Acted 2026-06-18:** ✅ governance **38 → 0** — all `trial_misattributed_*` violations CT.gov-verified and resolved
   (15 stale + 20 wrong links deleted + 3 false-positives kept; reversible backup in `docs/audits/backups/`). NEXT §C work:
-  tier the 115 untiered drugs (run the completeness scorer — non-destructive); revisit source coverage; weekly scoreboard +
+  tier the 115 untiered drugs — first investigate WHY `research_intelligence` skips them (mostly `manual`-discovery, full data) then dispatch `completeness-scoring.yml` (don't hand-run a scorer against prod); revisit source coverage; weekly scoreboard +
   trend tracking. This is where repo work converts to BD value.
 - **§D The dashboard (index.html, 34k lines) — the surface users actually use — is untouched** (§4/§A.2). Highest product
   leverage, highest risk; needs browser-verify (recipe ready).
@@ -44,11 +44,11 @@ NOT move the *product* value (intelligence accuracy, the dashboard, decision sur
    split pure modules (scoring dims, `build_step5_prompt`, `parse_*`); make credential reads lazy so modules import test-clean.
 1. ✅ **One clear data-write path** (§A.1, 2026-06-17) — DONE at code layer; all 4 core tables route pipeline writes through their Writer (scoreboard ✓). Dashboard-feature freeze can lift re: write integrity. Next correctness work: §A.2 UI/logic split, §A.4 audit, §A.5 edge-case tests.
 2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
-3. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).
-4. ⬜ **Large-file splits** — `company_enrichment` (4,437), `write_meridian` (2,391), others (§3).
-5. ⬜ **`index.html` Phase 4** decomposition (§4) — also separates UI from intelligence logic (§A.2).
+3. ⬜ **Decompose `weekend_sprint`** (§2) — supervised (DRY_RUN rebound-global blocker; executable plan in `modularization_plan.md`).
+4. ✅ **Large-file splits DONE** (§3, 2026-06-18) — 9 files split, ≥1000-line bucket **9 → 1**; the one left (`weekend_sprint` 3,001) is §2. Table in `modularization_plan.md`.
+5. ⬜ **`index.html` Phase 4** decomposition (§4 / §A.2) — supervised, browser-verify; Reads-module recipe ready in `INDEX_HTML_DECOMPOSITION_PLAN.md`.
 6. ✅ **`web/` reorg DONE** (§5) — 13 static dashboards → `web/`, root HTML 15→2; 4 secondary docs → `docs/`.
-7. ⬜ **Drift guardrails** wired as a recurring check (§6).
+7. ✅ **Drift guardrails DONE** (§6, 2026-06-18) — `ci-quality-gate.yml` runs compile + unit tests + health(no-cycles) + hygiene + live writer tests on every push/PR.
 
 ---
 
