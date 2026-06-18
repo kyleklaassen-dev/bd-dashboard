@@ -120,8 +120,10 @@ Per `docs/architecture/modularization_plan.md` + `PHASE3_4_EXECUTION_DESIGN.md`.
 - ✅ `research_intelligence.py` (1,379→413 + `scoring/research_intel/` {common,context,scoring,triggers,queue}) — DONE.
 - ✅ `company_intake.py` (1,180→504 + `identity/intake/` {common,research,queue,edges}) — DONE (preserved external `write_active_in_edge` surface).
 - ✅ `narrative_gen.py` (1,123→405 + `products/narrative/` {common,atoms,triangulate}) — DONE (preserved 3-importer surface; fixed a WORKSPACE depth bug).
-- ⬜ Remaining ≥1000: `drug_intake.py` (1,627, still in `scripts/` — migrate to `src/meridian/ingestion/` first, then split) ·
-  `acquisition_scorer.py` (1,091, manual, in `scripts/`). `weekend_sprint.py` (3,001) is §2 (decompose, not a clean split).
+- ✅ `drug_intake.py` (1,627→456) — migrated `scripts/`→`ingestion/` + `ingestion/drugintake/` {common,research,scoring,queue}. DONE.
+- ✅ `acquisition_scorer.py` (1,091→197) — migrated `scripts/`→`scoring/` + `scoring/acquisition/` {common,data,scoring,write}; fixed dead-token bug. DONE.
+- **All 9 splittable large files DONE — ≥1000-line bucket 9 → 1.** Remaining: `weekend_sprint.py` (3,001) = §2
+  (decompose the active scheduled orchestrator to *call into* the extracted modules; not a clean §3 split — supervised).
 
 ## 4. `index.html` (34,847 lines) — Phase 4 decomposition
 Per `docs/architecture/INDEX_HTML_MAP.md` + `INDEX_HTML_DECOMPOSITION_PLAN.md`. Extract self-contained JS modules

@@ -16,18 +16,19 @@ Entrypoint paths + names unchanged → no workflow edits. External-import surfac
 | `research_intelligence.py` | 1,379 → **413** | `scoring/research_intel/` — common, context, scoring, triggers, queue (5) |
 | `company_intake.py` | 1,180 → **504** | `identity/intake/` — common, research, queue, edges (4) |
 | `narrative_gen.py` | 1,123 → **405** | `products/narrative/` — common, atoms, triangulate (3) |
+| `drug_intake.py` | 1,627 → **456** | migrated `scripts/`→`ingestion/`; `ingestion/drugintake/` — common, research, scoring, queue (4) |
+| `acquisition_scorer.py` | 1,091 → **197** | migrated `scripts/`→`scoring/`; `scoring/acquisition/` — common, data, scoring, write (4) |
 
-(`company_enrichment` was split first; the other 6 in the same overnight push. ≥1000-line health bucket: 9 → 3.)
+**All 9 splittable large files DONE. ≥1000-line health bucket: 9 → 1.** Flat `scripts/` 32 → 30 (the two
+migrations). drug_intake → `ingestion/` (functional siblings ct_gov_sync, research; not `identity/` — that's
+company-identity territory and `company_intake` already holds `identity/intake/`). acquisition_scorer → `scoring/`.
+Both migrations fixed `__file__`-relative repo-root anchors for the new depth; acquisition_scorer also got a real
+bug fix (dead `.github_token` → live `.github_token_workflow`, per CLAUDE.md).
 
-## ⏸ REMAINING ≥1000 — flat `scripts/`, need DELIBERATE migration decisions (NOT done autonomously)
-- `drug_intake.py` (1,627) — **home + naming decision required.** This v1 plan (#4 below) and REPO_LAYOUT put it at
-  `identity/intake/`, but **`company_intake` already occupies `identity/intake/`** (its split landed there). drug_intake
-  is also arguably `ingestion/` (it ingests drug data). Pick a non-colliding home (`identity/drug_intake/`? `ingestion/`?)
-  before migrating. No workflow/importer references it (manual tool) → migration itself is low-risk once the home is chosen.
-  Also fix its line-109 repo-root anchor (`dirname×2` → `×4`) on the move.
-- `acquisition_scorer.py` (1,091) — manual scorer in `scripts/`; same migrate-from-scripts decision (home `scoring/`?).
-- `weekend_sprint.py` (3,001) — **§2, not a clean split** — an orchestration mega-script; the call is whether it should
-  *call into* the now-extracted modules rather than be split. Deliberate.
+## ⏸ REMAINING ≥1000 — only `weekend_sprint.py` (3,001), and it is **§2, NOT a clean §3 split**
+An **active, scheduled** orchestration mega-script (`weekend_sprint.yml`, ~8 Sat crons, LLM). The right move is to
+**decompose** it so it *calls into* the now-extracted modules instead of duplicating their logic — a deliberate,
+higher-risk refactor of live scheduled code, not the byte-identical relocation pattern used above. Do it supervised.
 
 ---
 ### v1 plan (2026-06-09, original — superseded by the EXECUTED table above)

@@ -3,6 +3,25 @@
 
 ---
 
+## 2026-06-18 — §3 splits: drug_intake + acquisition_scorer migrated & split (bucket → 1)
+
+Finished the §3 large-file work by migrating the two remaining splittable flat scripts into the package and
+splitting them. **The ≥1000-line health bucket is now 1** (only `weekend_sprint`, which is §2-decompose). Flat
+`scripts/` 32 → 30.
+- **`drug_intake.py` 1,627 → 456** — migrated `scripts/` → `src/meridian/ingestion/` (home = ingestion/, matching its
+  functional siblings ct_gov_sync + research; not identity/, which company_intake holds). Split into
+  `ingestion/drugintake/` {common, research, scoring, queue}. Fixed the creds-file repo-root anchor for the new depth.
+- **`acquisition_scorer.py` 1,091 → 197** — migrated `scripts/` → `src/meridian/scoring/`, split into
+  `scoring/acquisition/` {common, data, scoring, write}. Also fixed a real bug: it read the **dead** `.github_token`
+  (CLAUDE.md) at module level so it had been import-broken — now points at the live `.github_token_workflow`.
+- Both: byte-identical relocations, AST-guided imports, import-smoke (the smoke caught the depth-anchor + missing-`sys`
+  + dead-token issues), writer tests 6/0 + 8/0. No workflow/importer referenced either (manual tools) → low-risk.
+
+All on branch `refactor/section3-company-enrichment-prompts` (not pushed). **§3 large-file program: 9 files split,
+9→1 bucket.** Remaining `weekend_sprint` (3,001) is an active scheduled orchestrator → §2 decompose, supervised.
+
+---
+
 ## 2026-06-17 — §3 splits: research_intelligence + company_intake + narrative_gen
 
 Three more large files modularized (same byte-identical / AST-guided / writer-test-gated method); the ≥1000-line
