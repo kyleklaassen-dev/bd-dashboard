@@ -26,9 +26,17 @@ import-smoke + writer regression tests (6/0 + 8/0). Entrypoint paths unchanged �
   constants stay in research.py (follow-up). NOTE: research.py needs CI-only deps (feedparser/BeautifulSoup) so it
   can't be import-smoked locally — verified the 3 new modules import standalone + byte-identical + writer tests.
 
-## NEXT §3 targets (same method): finish `research.py` (sources/extract/write still inline) · `drug_intake.py`
-(1,627, still in `scripts/` — migrate to `src/meridian/ingestion/` first, then split) · `research_intelligence`
-(1,379) · `company_intake` (1,180) · `narrative_gen` (1,123). `weekend_sprint` (3,001) is §2 (decompose, not split).
+## §3 STATUS: all 8 in-package large files SPLIT (≥1000-line bucket 9 → 3). Done this session:
+research_intelligence (1,379→413, `scoring/research_intel/`), company_intake (1,180→504, `identity/intake/`),
+narrative_gen (1,123→405, `products/narrative/`) — plus write_meridian/ct_gov_sync/research/company_enrichment earlier.
+Full table in `docs/architecture/modularization_plan.md` (v2). **Remaining ≥1000 are flat `scripts/` needing a
+DELIBERATE home/naming decision (intentionally NOT migrated autonomously):**
+- `drug_intake.py` (1,627) — docs say home = `identity/intake/`, but **company_intake already took that path**; pick a
+  non-colliding home (`identity/drug_intake/`? `ingestion/`?) + fix its line-109 repo-root anchor (`dirname×2`→`×4`). No
+  workflow/importer → low-risk once the home is chosen.
+- `acquisition_scorer.py` (1,091, manual) — same migrate-from-scripts decision (`scoring/`?).
+- `weekend_sprint.py` (3,001) — §2 (decompose mega-orchestrator; should call into the extracted modules, not be split).
+- Minor follow-up: finish `research.py` (its sources/extract/write helpers are still inline at 913).
 
 ## index.html (§4 / §A.2) — PREP DONE, extraction is supervised-only (2026-06-17)
 Refreshed the tail-module map (line numbers had drifted) + wrote a ready-to-run Stage-2 recipe for the safest first

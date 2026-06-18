@@ -1,6 +1,36 @@
 # Modularization Plan (Phase 3)
 
-**Status:** v1, 2026-06-09. How we split the oversized scripts safely. **Rule:** target ≤300 lines/module; >300–400 triggers a split evaluation; larger only when justified + documented.
+**Status:** v2, 2026-06-17 — **8 of the in-package large files are now SPLIT.** v1 (2026-06-09) below is the original plan. **Rule:** target ≤300 lines/module; >300–400 triggers a split evaluation; larger only when justified + documented.
+
+## ✅ EXECUTED (2026-06-17, branch `refactor/section3-company-enrichment-prompts`, not yet pushed)
+Method: AST free-variable analysis → byte-identical relocation (every block diffed `== True`) → py_compile +
+import-smoke + writer regression tests (6/0 + 8/0) per step. Star topology (everything imports `common`, 0 cycles).
+Entrypoint paths + names unchanged → no workflow edits. External-import surfaces preserved + verified per module.
+
+| Script | Before → After | Subpackage (modules) |
+|---|---|---|
+| `company_enrichment.py` | 4,377 → **937** | `enrichment/company/` — common, prompts, resolve, discovery, trials, catalysts, assessment, molecule, partnerships, deals, scoring (11) |
+| `write_meridian.py` | 2,387 → **435** | `products/issue/` — common, fetch, blocks, prompts, factcheck, links, persist, deploy (9) |
+| `ct_gov_sync.py` | 1,409 → **691** | `ingestion/ctgov/` — common, map, validate, fetch, write (5) |
+| `research.py` | 1,539 → **913** | `ingestion/research_pipeline/` — common, pkpd, monitors (3; sources/extract/write still inline = follow-up) |
+| `research_intelligence.py` | 1,379 → **413** | `scoring/research_intel/` — common, context, scoring, triggers, queue (5) |
+| `company_intake.py` | 1,180 → **504** | `identity/intake/` — common, research, queue, edges (4) |
+| `narrative_gen.py` | 1,123 → **405** | `products/narrative/` — common, atoms, triangulate (3) |
+
+(`company_enrichment` was split first; the other 6 in the same overnight push. ≥1000-line health bucket: 9 → 3.)
+
+## ⏸ REMAINING ≥1000 — flat `scripts/`, need DELIBERATE migration decisions (NOT done autonomously)
+- `drug_intake.py` (1,627) — **home + naming decision required.** This v1 plan (#4 below) and REPO_LAYOUT put it at
+  `identity/intake/`, but **`company_intake` already occupies `identity/intake/`** (its split landed there). drug_intake
+  is also arguably `ingestion/` (it ingests drug data). Pick a non-colliding home (`identity/drug_intake/`? `ingestion/`?)
+  before migrating. No workflow/importer references it (manual tool) → migration itself is low-risk once the home is chosen.
+  Also fix its line-109 repo-root anchor (`dirname×2` → `×4`) on the move.
+- `acquisition_scorer.py` (1,091) — manual scorer in `scripts/`; same migrate-from-scripts decision (home `scoring/`?).
+- `weekend_sprint.py` (3,001) — **§2, not a clean split** — an orchestration mega-script; the call is whether it should
+  *call into* the now-extracted modules rather than be split. Deliberate.
+
+---
+### v1 plan (2026-06-09, original — superseded by the EXECUTED table above)
 
 > **Safety doctrine:** never split a live script blind. Each split (1) keeps the public entrypoint/CLI identical, (2) extracts cohesive modules behind it, (3) is verified by `py_compile` + an import smoke test + (where possible) a dry-run, (4) routes any DB writes through the `src/database` writers. Splits are reversible (git) and done one script at a time.
 
