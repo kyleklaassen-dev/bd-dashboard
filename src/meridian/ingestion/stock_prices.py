@@ -8,6 +8,7 @@ Runs 6 AM ET daily (10:00 UTC), after market open.
 
 import os, json, datetime, time
 import requests
+from meridian.database.company_writer import CompanyWriter
 
 # ── Credentials ─────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -120,18 +121,13 @@ def upsert_price(company_id, ticker, price, change_pct, market_cap=None):
     now_iso = datetime.datetime.utcnow().isoformat() + "Z"
 
     # 1. Patch the live companies row (existing behaviour)
-    r = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/companies",
-        headers={**SB_HEADERS, "Prefer": "return=minimal"},
-        params={"id": f"eq.{company_id}"},
-        json={
-            "stock_price":       price,
-            "stock_change":      change_pct,
-            "last_price_update": datetime.datetime.utcnow().isoformat(),
-        },
-    )
-    if r.status_code not in (200, 201, 204):
-        log(f"  Update error for company {company_id}: {r.status_code} {r.text[:100]}")
+    _r = CompanyWriter().update_fields(company_id, {
+        "stock_price":       price,
+        "stock_change":      change_pct,
+        "last_price_update": datetime.datetime.utcnow().isoformat(),
+    })
+    if _r.get("errors"):
+        log(f"  Update error for company {company_id}: {_r.get('errors')}")
         return False
 
     # 2. Insert into stock_price_history for trend tracking

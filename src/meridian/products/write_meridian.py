@@ -9,6 +9,7 @@ Runs 6:30 AM ET Mon–Sat (10:30 UTC).
 
 import os, json, datetime, base64, re, time, hashlib
 import requests
+from meridian.database.catalyst_writer import CatalystWriter
 import anthropic
 
 # Patient intelligence context (co-equal intelligence layer)
@@ -2028,14 +2029,9 @@ def sync_catalyst_outcomes(plan: dict, intel: list):
                         overlap = label_words & headline_words - {"a","the","in","of","for","and","with","or","to","from"}
                         if len(overlap) >= 2:  # meaningful overlap
                             outcome = (item.get("headline") or "")[:200]
-                            requests.patch(
-                                f"{SUPABASE_URL}/rest/v1/catalysts",
-                                headers={**SB_HEADERS, "Prefer": "return=minimal"},
-                                params={"id": f"eq.{cat['id']}"},
-                                json={"resolved": True, "resolved_note": f"[auto] Meridian Issue: {outcome}",
-                                      "catalyst_status": "resolved", "staleness_status": "stale"},
-                                timeout=10,
-                            )
+                            CatalystWriter().upsert({"id": cat["id"], "resolved": True,
+                                "resolved_note": f"[auto] Meridian Issue: {outcome}",
+                                "catalyst_status": "resolved", "staleness_status": "stale"})
                             log(f"  [sync_catalyst] Resolved catalyst for {drug_id}: {cat['label'][:60]}")
                             resolved_count += 1
                 except Exception as e:

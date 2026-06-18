@@ -10,6 +10,7 @@ Runs 2:00 AM ET Mon–Sat (06:00 UTC).
 import os, json, hashlib, datetime, time, re, sys
 import feedparser
 import requests
+from meridian.database.catalyst_writer import CatalystWriter
 import anthropic
 from bs4 import BeautifulSoup
 
@@ -731,7 +732,7 @@ def write_to_supabase(intel_items, company_map=None, resolver=None):
                 "notes":          item.get("body") or "",
                 "resolved":       False,
             }
-            if sb_post("catalysts", cat_rec):
+            if not CatalystWriter().upsert(cat_rec).get("errors"):
                 inserted_catalysts += 1
 
     log(f"Wrote → intel: {inserted_intel}, deals: {inserted_deals}, catalysts: {inserted_catalysts} "

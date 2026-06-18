@@ -80,6 +80,20 @@ class CompanyWriter:
         report["validation"] = {"dup_name": self._dup_check(rec.get("name"), rec["id"])}
         return report
 
+    def update_fields(self, company_id, fields):
+        """Governance-checked partial update of an EXISTING company (no identity resolution)."""
+        report = {"action": "update", "company_id": company_id, "errors": [], "warnings": [], "dry_run": self.dry_run}
+        errs, warns, merged = self.check_governance({**fields, "id": company_id})
+        report["warnings"] = warns
+        merged.pop("id", None)
+        if errs:
+            report["errors"] = errs; return report
+        if self.dry_run: return report
+        code, body, _ = client.update("companies", f"id=eq.{company_id}", merged)
+        if code >= 300:
+            report["errors"].append(f"update failed: {code} {str(body)[:160]}")
+        return report
+
     def _dup_check(self, name, cid):
         if not name:
             return "skip"

@@ -22,6 +22,9 @@ Runs nightly as part of the Meridian enrichment pipeline.
 """
 
 import os, sys, time, datetime, pathlib, argparse, urllib.request, urllib.error
+for _p in pathlib.Path(__file__).resolve().parents:
+    if (_p / 'src' / 'meridian' / 'database').is_dir(): sys.path.insert(0, str(_p / 'src')); break
+from meridian.database.drug_writer import DrugWriter
 from collections import defaultdict
 
 try:
@@ -210,13 +213,8 @@ def update_confidence_scores(service_key: str) -> None:
         else:
             level = "unverified"
 
-        patch = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/drugs?id=eq.{drug_id}",
-            headers={**h, "Prefer": "return=minimal"},
-            json={"data_confidence": level},
-            timeout=10,
-        )
-        if patch.ok:
+        _r = DrugWriter().update_fields(drug_id, {"data_confidence": level})
+        if not _r.get("errors"):
             updated += 1
 
     print(f"[confidence] Updated data_confidence for {updated} drugs.")
