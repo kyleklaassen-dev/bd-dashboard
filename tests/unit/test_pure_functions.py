@@ -23,7 +23,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from meridian.enrichment.company.common import normalize_area_id
 from meridian.enrichment.company.prompts import build_step5_prompt
+from meridian.enrichment.company.resolve import resolve_company_id
+from meridian.enrichment.company.catalysts import _parse_sort_date
+from meridian.enrichment.company.deals import _deal_signature
 from meridian.ingestion.ctgov.map import parse_ct_study, _format_date_label
+from meridian.products.narrative.common import recipe_hash
 from meridian.scoring.acquisition.scoring import _bd_rating, _days_until
 from meridian.scoring.research_intel.scoring import score_entity_completeness
 
@@ -84,6 +88,33 @@ def test_score_entity_completeness_returns_tier():
     r = score_entity_completeness(ctx)
     assert "completeness_score" in r and isinstance(r["completeness_score"], (int, float))
     assert r["completeness_tier"] in ("thin", "partial", "strong")
+
+
+def test_resolve_company_id():
+    cmap = {"eli lilly": "lilly", "roche": "roche", "spyre therapeutics": "spyre"}
+    assert resolve_company_id("Roche", cmap) == "roche"                       # exact (case-fold)
+    assert resolve_company_id("Spyre Therapeutics (TL1A mono)", cmap) == "spyre"  # parenthetical strip
+    assert resolve_company_id("Nonexistent Biotech XYZ", cmap) is None        # no ghost match
+
+
+def test_parse_sort_date():
+    assert _parse_sort_date("2026-05-15") == "2026-05-15"   # ISO prefix
+    assert _parse_sort_date("Apr 2026") == "2026-04-01"     # Mon YYYY → 1st
+    assert _parse_sort_date("Q3 2026") == "2026-07-01"      # quarter → quarter-start
+    assert _parse_sort_date("2026") == "2026-06-01"         # bare year → mid-year
+    assert _parse_sort_date("sometime") is None             # unparseable → None
+
+
+def test_deal_signature_normalizes():
+    # case / punctuation / whitespace variants collapse to one dedupe key
+    a = _deal_signature("AbbVie licenses TL1A from FutureGen")
+    b = _deal_signature("abbvie  LICENSES tl1a from futuregen!")
+    assert a == b and a != ""
+
+
+def test_recipe_hash_order_independent():
+    assert recipe_hash({"a": 1, "b": 2}) == recipe_hash({"b": 2, "a": 1})     # key order irrelevant
+    assert recipe_hash({"a": 1}) != recipe_hash({"a": 2})                     # content-sensitive
 
 
 def _run():

@@ -21,11 +21,15 @@ WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.p
 
 
 def _read_key(filename, env=None):
-    # env var first (CI / GitHub Actions secrets), then the local workspace file.
+    # env var first (CI / GitHub Actions secrets), then the local workspace file,
+    # then '' (never raises) so the module imports test-clean without secrets.
     if env and os.environ.get(env, "").strip():
         return os.environ[env].strip()
-    with open(os.path.join(WORKSPACE, filename)) as f:
-        return f.read().strip()
+    try:
+        with open(os.path.join(WORKSPACE, filename)) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""
 
 
 SUPA_KEY = _read_key(".supabase_service_key", "SUPABASE_SERVICE_KEY")
