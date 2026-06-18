@@ -14,7 +14,30 @@ Last updated: 2026-06-16. Status legend: ⬜ not started · 🟡 in progress · 
 - When you discover new work mid-task, add it here immediately (don't rely on memory or a code comment).
 - Keep items **outcome-phrased** and **self-contained** (a future reader has no memory of today).
 
+## ⭐ Strategic reframe (2026-06-18) — are we improving the repo's VALUE?
+The §3 splits (9 files, ≥1000-line bucket 9→1) genuinely improved **maintainability** — Kyle's north-star metric #4,
+and a real onboarding/bug-surface win. But they were **byte-identical by design → zero behavior change**, so they did
+NOT move the *product* value (intelligence accuracy, the dashboard, decision surfacing). Necessary, not sufficient.
+**The gaps that actually cap value (now tracked as §B–§E below):**
+- **§B No automated safety net (biggest gap).** 3 test files / 131 modules, and *nothing* ran in CI — a PR could break
+  the 4am pipeline and nothing caught it until the unattended run failed. The splits made ~40 modules unit-testable but
+  that dividend was uncashed. **Started 2026-06-18:** added `ci-quality-gate.yml` (compile + unit tests + health-no-cycles
+  + hygiene + live writer tests) and the first characterization tests (`tests/unit/`). This is the "production-grade /
+  any-engineer-can-step-in" enabler — a green check now *means* something.
+- **§C Intelligence quality is the actual product, and structure doesn't move it.** Value = accurate, complete, fresh,
+  trustworthy BD intelligence. Make these *tracked outcomes*, not vibes: validation pass-rate, source-coverage %, data
+  freshness/staleness, governance-clean, drug/company completeness. A weekly "intelligence quality" scoreboard alongside
+  the structural one.
+- **§D The dashboard (index.html, 34k lines) — the surface users actually use — is untouched** (§4/§A.2). Highest product
+  leverage, highest risk; needs browser-verify (recipe ready).
+- **§E Real dedup/clarity debt:** 17 entity-resolution implementations (converge on `entity_matcher`, metric #3);
+  `weekend_sprint` duplicates `company_enrichment`/`compute_coverage`/`source_verifier`/`bd_recommender` logic;
+  51 workflows (operational surface — observability + consolidation candidates). Plus: module-level `os.environ[...]`
+  credential reads at import block clean unit-testing (make them lazy → cashes more of the testability dividend).
+
 ## Now / Next (the short list)
+0. 🟡 **§B safety net** — CI quality gate + first unit tests landed (2026-06-18). NEXT: grow characterization tests over the
+   split pure modules (scoring dims, `build_step5_prompt`, `parse_*`); make credential reads lazy so modules import test-clean.
 1. ✅ **One clear data-write path** (§A.1, 2026-06-17) — DONE at code layer; all 4 core tables route pipeline writes through their Writer (scoreboard ✓). Dashboard-feature freeze can lift re: write integrity. Next correctness work: §A.2 UI/logic split, §A.4 audit, §A.5 edge-case tests.
 2. ✅ **Package migration structurally COMPLETE** (§1, 2026-06-17) — `src/` is one unified `meridian` package (incl. writers→`src/meridian/database/`, narrative cluster, enrichment-core). Tail: a few LLM stragglers; most remaining flat scripts are manual tools + `weekend_sprint`.
 3. ⬜ **Decompose `weekend_sprint`** into proper homes, then retire it (§2).

@@ -1,0 +1,59 @@
+name: CI Quality Gate
+
+# The repo's first automated regression gate. Until now the safety nets (writer tests,
+# health scoreboard, hygiene check) were "remember to run them manually" — nothing stopped
+# a PR from breaking the 4am pipeline until the unattended run failed. This makes a green
+# check mean "imports compile, the split modules still behave, no new import cycles, no
+# broken workflow paths, and the live write-layer invariants still hold."
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-gate:
+    # No secrets needed — fast structural checks that run on every push, including forks.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install deps (for module imports in the unit tests)
+        run: pip install -r scripts/requirements.txt
+      - name: Byte-compile all Python (syntax gate)
+        run: python -m compileall -q src scripts tests
+      - name: Pure-function characterization tests
+        run: python tests/unit/test_pure_functions.py
+      - name: Structural health — fail on any import cycle
+        run: PYTHONPATH=src python scripts/maintenance/meridian_health_metrics.py --ci
+      - name: Repo hygiene — fail on broken workflow→path references
+        run: python scripts/maintenance/repo_hygiene_check.py
+
+  live-writer-tests:
+    # The live (read-only) regression gate for the governed write layer. Separate job so a
+    # transient network/DB hiccup can't mask a real static-gate failure. Needs repo secrets.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}/src
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ANTHROPIC_API_KEY: ci-dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install deps
+        run: pip install -r scripts/requirements.txt
+      - name: DrugWriter regression suite (read-only)
+        run: python tests/database/test_drug_writer.py
+      - name: Writer regression suite (read-only)
+        run: python tests/database/test_writers.py
+      - name: Edge-case identity suite (read-only)
+        run: python tests/database/test_edge_cases.py

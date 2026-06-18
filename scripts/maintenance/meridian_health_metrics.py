@@ -148,3 +148,9 @@ print("  most depended-on (fan-in):")
 for mod,c in indeg.most_common(8): print(f"     {c:3d} <- {mod}")
 cyc=find_cycles()
 print(f"  import cycles: {[' → '.join(c) for c in cyc] if cyc else 'none ✓'}")
+
+# CI gate: `--ci` makes a real structural regression (an import cycle) fail the build.
+# Interactive runs (no flag) stay informational so the scoreboard is always readable.
+if "--ci" in sys.argv and cyc:
+    print("\n✗ CI GATE FAILED: import cycle(s) detected above.")
+    sys.exit(1)
