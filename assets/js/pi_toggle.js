@@ -70,36 +70,6 @@ function piFilter(input, tableId) {
   });
 }
 
-// ── Pharma Landscape — inject dossier buttons onto ranking rows ───────────
-var _RANKING_ID_MAP = {
-  'cn-hengrui':'hengrui','cn-sinopharm':'sinopharm','cn-cspc':'cspc','cn-wuxi-bio':'wuxi-bio',
-  'cn-beigene':'beone','cn-sino-biopharma':'sinobiopharma','cn-yunnan-baiyao':'yunnan-baiyao',
-  'cn-hansoh':'hansoh','cn-innovent':'innovent','cn-fosun':'fosun','cn-hutchmed':'hutchmed',
-  'cn-zailab':'zailab','cn-shanghai-pharma':'shanghai-pharma','cn-pien-tze-huang':'pien-tze-huang',
-  'cn-remegen':'remegen',
-  'us-lilly':'lilly','us-jnj':'jnj','us-novartis':'novartis','us-abbvie':'abbvie',
-  'us-novonordisk':'novonordisk','us-astrazeneca':'astrazeneca','us-merck':'merck','us-roche':'roche',
-  'us-amgen':'amgen','us-pfizer':'pfizer','us-bms':'bms','us-sanofi':'sanofi','us-gilead':'gilead',
-  'us-vertex':'vertex','us-gsk':'gsk','us-regeneron':'regeneron','us-takeda':'takeda',
-  'us-bayer':'bayer','us-biogen':'biogen','us-moderna':'moderna'
-};
-function _addRankingDossierBtns() {
-  document.querySelectorAll('.pi-main-row').forEach(function(row) {
-    var m = (row.getAttribute('onclick') || '').match(/piToggle\('([^']+)'\)/);
-    if (!m) return;
-    var sbId = _RANKING_ID_MAP[m[1]];
-    if (!sbId) return;
-    var strong = row.querySelector('strong');
-    if (!strong || strong.querySelector('.pi-dossier-btn')) return;
-    var btn = document.createElement('button');
-    btn.className = 'co-profile-btn pi-dossier-btn';
-    btn.textContent = 'Profile →';
-    var coName = strong.textContent.replace(/[▼▲↑↓]/g,'').trim();
-    btn.onclick = function(e) { e.stopPropagation(); openCompanyEntityModal(sbId, coName, 'pharma-intel'); };
-    strong.appendChild(btn);
-  });
-}
-
 // ── All Companies (Pharma Landscape) ──────────────────────────────────────
 let _acData = [], _acFiltered = [], _acInitialized = false;
 
