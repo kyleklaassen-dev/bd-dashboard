@@ -963,7 +963,8 @@ AFTER EVERY INDEX.HTML DEPLOY
  <div class="ailux-title">Ailux Asset Profile · TL1A × IL-23p19 Bispecific</div>
  <div class="ailux-name">Competitive Positioning vs. Field</div>
  <div class="ailux-sub">4 structural differentiators vs. Mirador, Caldera, Xencor, Helixon, and Simcere/BI programs</div>
- <div class="ailux-diff-grid">
+ <!-- 2026-06-19 (rec #6): differentiators rendered from asset_programs (Supabase) by asset_tab.js; static markup below is the fallback if the table is empty/unreachable. -->
+ <div class="ailux-diff-grid" id="asset-diff-tl1a" data-asset-program="ALX001">
  <div class="ailux-diff">
  <div class="ad-label">Mechanism of Action</div>
  <div class="ad-val">Trimer Destabilization</div>
@@ -5545,6 +5546,7 @@ function dknDismissChanges(){
 
 <!-- ── READS TAB logic (research_reads) — additive, self-contained. Added 2026-06-10. ── -->
 <script src="assets/js/reads.js"></script>
+<script src="assets/js/asset_tab.js"></script>
 
 </body>
 </html>

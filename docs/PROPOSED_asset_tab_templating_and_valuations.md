@@ -66,5 +66,7 @@ When live: delete `labelValuationEstimates()` (the interim disclaimer) and repla
 
 ## Status / next gate
 - ✅ Table shapes approved (Kyle, 2026-06-19).
-- ✅ `migrations/PROPOSED_asset_templating.sql` authored (CREATE TABLE + RLS, **not applied**).
-- ⬜ **Next:** run the migration via the Management API (needs Supabase service creds — currently a blocker per the stabilization-plan session log) → backfill with sourced data → build `assets/js/asset_tab.js` renderer → verify TL1A at parity → roll remaining 6 → wire valuations → remove the interim `labelValuationEstimates()` disclaimer.
+- ✅ **APPLIED** `migrations/APPLIED_2026-06-19_asset_templating.sql` via Management API — `asset_programs` + `deal_comparables` created with RLS anon-read; verified (columns, RLS, anon 200).
+- ✅ **Pilot APPLIED + verified**: `asset_programs` seeded with ALX001 (TL1A) from the hardcoded card (`APPLIED_2026-06-19_asset_programs_seed_tl1a.sql`); `assets/js/asset_tab.js` renders the TL1A differentiator grid from the table (`data-source="asset_programs"`, 4 items, exact parity) with a silent static fallback. No console errors.
+- ⬜ **Next (repeatable per tab):** seed the remaining 6 programs (TSLP, IL-4Rα×TSLP, IL-4Rα×OX40L, IGF1R×TSHR, FcRn, BCMA×CD19×CD3) — each: extract its `ailux-card` content → seed row → add `id="asset-diff-<tab>"` + a `DIFF_GRID_BY_PROGRAM` entry → verify. Then **#10**: backfill `deal_comparables` with **sourced** comps (source_url is NOT NULL — derive from the live `deals` table where sourced; no fabricated URLs) → render valuation cards from it → remove the interim `labelValuationEstimates()` disclaimer.
+- Note: target_pairs reconciliation (add the 4 missing pairs + flag the 7 `ailux_pair`) is follow-up ontology work; `asset_programs.target_pair_id` is nullable until then.
