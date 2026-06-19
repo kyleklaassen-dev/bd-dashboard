@@ -5379,10 +5379,11 @@ registerTab('meridian-issue', {
     if (arc) arc.style.display = 'none';
   }
 });
-// DEPRECATED 2026-06-06: 'pharma-intel' tab retired (removed from nav). Registration disabled.
-// registerTab('pharma-intel', {
-//   onEnter() { _initAllCompanies(); _addRankingDossierBtns(); }
-// });
+// 2026-06-19: pharma-intel re-enabled as the live Company Repository only.
+// Static China/US/AI ranking cards removed (rec #4); _addRankingDossierBtns() retired with them.
+registerTab('pharma-intel', {
+  onEnter() { _initAllCompanies(); }
+});
 registerTab('industry-insights', {
 
   onEnter() { _iifSyncSidebar(); loadIndustryInsightsFeed(); }
@@ -11856,7 +11857,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
   document.addEventListener('DOMContentLoaded', () => { initHomeWelcome(); });
 })();
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadStockCards(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
@@ -12060,24 +12061,6 @@ function toggleRuleChip(id) {
  const chip = document.getElementById(id);
  if (chip) chip.classList.toggle('open');
 }
-
-function toggleStockCard(el) {
- el.classList.toggle('expanded');
-}
-
-function stockFilter(btn, area) {
- document.querySelectorAll('.stock-fbtn').forEach(b => b.classList.remove('active'));
- btn.classList.add('active');
- document.querySelectorAll('#stock-cards-grid .stock-card').forEach(card => {
-  if (!area) {
-   card.classList.remove('stock-card-hidden');
-  } else {
-   const areas = (card.dataset.areas || '').split(' ');
-   card.classList.toggle('stock-card-hidden', !areas.includes(area));
-  }
- });
-}
-
 
 // ── INTEL SUBMIT PANEL ────────────────────────────────────────────
 function toggleIntelPanel() {
