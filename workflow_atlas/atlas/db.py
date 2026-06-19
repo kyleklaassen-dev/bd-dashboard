@@ -128,14 +128,27 @@ def _columns_from_block(sql: str, start: int) -> list[str]:
     return out
 
 
+# template / example SQL whose CREATE TABLEs are placeholders, not real schema
+_TEMPLATE_SQL = ("migration_template.sql", "template")
+
+
+def _strip_sql_comments(sql: str) -> str:
+    """Drop `-- ...` line comments and /* ... */ blocks so commented-out
+    CREATE TABLE statements aren't counted as real tables."""
+    sql = re.sub(r"/\*.*?\*/", " ", sql, flags=re.DOTALL)
+    return "\n".join(re.sub(r"--.*$", "", ln) for ln in sql.splitlines())
+
+
 @lru_cache(maxsize=1)
 def _schema() -> dict[str, dict]:
     out: dict[str, dict] = {}
     sql_files = list((REPO_ROOT / "migrations").glob("*.sql"))
     sql_files += list((REPO_ROOT / "docs").rglob("*.sql"))
     for f in sql_files:
+        if any(t in f.name.lower() for t in _TEMPLATE_SQL):
+            continue  # placeholder schema (e.g. `new_table` in migration_template.sql)
         try:
-            sql = f.read_text(encoding="utf-8", errors="replace")
+            sql = _strip_sql_comments(f.read_text(encoding="utf-8", errors="replace"))
         except OSError:
             continue
         for m in _CREATE.finditer(sql):
@@ -150,6 +163,16 @@ def _schema() -> dict[str, dict]:
 # --------------------------------------------------------------------------- #
 # 2. table access from code
 # --------------------------------------------------------------------------- #
+# REST-style access the sb_*/client scan misses: f-string URLs like
+#   get(f"narrative_feedback?select=...")  ·  _request("PATCH", f"intel?id=eq.{x}")
+#   "/rest/v1/companies"  ·  sb_get(f"drugs?select=id")
+# A bare "<table>?<query>" inside a string is a Supabase REST path. PATCH/POST/DELETE
+# in the same call → write; otherwise read. (Heuristic, but recovers the big class
+# of false "unused" tables.)
+_REST_PATH = re.compile(r"['\"]/?(?:rest/v1/)?([a-z_][a-z0-9_]*)\?(?:select|[a-z_]+=)")
+_WRITE_HINT = re.compile(r"\b(PATCH|POST|PUT|DELETE|patch|post|delete|upsert|insert|update)\b")
+
+
 @lru_cache(maxsize=1)
 def _access() -> dict[str, list[Ref]]:
     out: dict[str, list[Ref]] = {}
@@ -165,6 +188,13 @@ def _access() -> dict[str, list[Ref]]:
                 mode = "write" if func in WRITE_FUNCS else "read"
                 line = txt.count("\n", 0, m.start()) + 1
                 out.setdefault(table, []).append(Ref(rel, line, func, mode))
+            # second pass: REST-path strings (f-string queries, /rest/v1/ URLs)
+            for m in _REST_PATH.finditer(txt):
+                table = m.group(1).lower()
+                ctx = txt[max(0, m.start() - 40): m.start() + 20]
+                mode = "write" if _WRITE_HINT.search(ctx) else "read"
+                line = txt.count("\n", 0, m.start()) + 1
+                out.setdefault(table, []).append(Ref(rel, line, "rest", mode))
     return out
 
 
@@ -288,14 +318,21 @@ def db_audit(tables) -> list[DBFinding]:
                 "path, but worth retiring so they can't be re-run.",
                 [name]))
 
-    # B) dead tables: defined in SQL but never referenced in code -------------
+    # B) no static reference found — a HINT to investigate, NOT a drop list.
+    # Verified 2026-06-18: of the tables flagged here, several are real-but-empty
+    # framework tables (correction_labels, target_known_drugs) referenced only in
+    # SQL views, and the big trial tables are written via DYNAMIC table names that
+    # a static scan can't follow. Never drop a table off this signal alone —
+    # confirm against live row counts + SQL views + the dashboard first.
     for t in tables:
         if t.defined and not t.refs:
             findings.append(DBFinding(
-                "warning", "Possibly unused table",
-                f"`{t.name}` is defined in SQL but never read or written in code",
-                f"CREATE TABLE exists ({', '.join(t.create_files)}) but no sb_*/client "
-                "call references it. Either dead, or written by SQL/Management-API only.",
+                "info", "No static reference found",
+                f"`{t.name}` is defined in SQL but no static code reference was found",
+                f"CREATE TABLE exists ({', '.join(t.create_files)}) but no literal "
+                "sb_*/client/REST call names it. This is a HINT, not proof it's dead: "
+                "it may be accessed via SQL views, a dynamic table-name variable, or "
+                "the dashboard. **Verify live row count + usage before any action.**",
                 [t.name]))
 
     # C) undocumented schema: written in code but no CREATE TABLE in repo ------
