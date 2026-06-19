@@ -1,5 +1,47 @@
 # Large-File Modularization Triage (2026-06-19)
 
+## PROGRESS LEDGER (updated 2026-06-19, overnight autonomous push)
+
+**Done — split + verified + merged (under 500):**
+| File | Was→Now | Split into | PR |
+|---|---|---|---|
+| `identity/model_comparison.py` | 727→412 | `model_comparison_report.py` | #42 |
+| `identity/company_intake.py` | 504→276 | `intake/reaudit.py` | #43 |
+| `scripts/compute_strategic_value.py` | 581→452 | `strategic_value_scoring.py` (pure) | #44 |
+| `scripts/seed_targets.py` | 791→408 | `seed_targets_data.py` (pure data) | #45 |
+| `scripts/seed_competes_with.py` | 692→394 | `competes_targets.py` + `competes_edges.py` | #47 |
+
+Method proven headless: byte-identical relocation → `py_compile` + `check_undefined_names`
++ **runtime functional smoke** (catches missing stdlib imports the static check misses —
+e.g. `defaultdict` in #47) + consumer-import + writer/entity tests. See [[section3-split-method]].
+
+**LIB tier: COMPLETE.** 2 split (#42 model_comparison, #43 company_intake); 4 legitimately
+skipped — `enrichment/company/assessment.py` (one 633-line `write_step5`, no inner defs →
+nothing to relocate; needs *extraction* refactor, supervised), `enrichment/company/prompts.py`
+(prompt text), `identity/identity_resolution.py` (converge on `entity_matcher`, don't split),
+`scoring/acquisition/scoring.py` (already modular, test-covered).
+
+**SEED tier deferred (need bespoke work, NOT unattended byte-identical):**
+- `consistency_checker.py`, `coverage_gap_finder.py`, `human_queue_builder.py` — **mutable
+  `DRY_RUN` global write-gate**: `run()` rebinds `global DRY_RUN`, `sb_post/upsert` read it.
+  Splitting writers to a base module splits the global → dry-run could write prod. Needs the
+  runtime-accessor refactor (semantic, supervised).
+- `drug_enrichment.py` (876) — clean-ish seams but **scattered**, and `enrich_drug` is called
+  nightly by weekend_sprint phase B1 → PIPE-level blast radius despite SEED filing.
+- `compute_landscape_coverage.py` (543) — SAFE 3-file split available (base + metrics + inline
+  main; its `DRY_RUN` is an import-time constant, not rebound). Good next target, slightly fiddly
+  (no `main()`, inline bottom orchestration).
+- `seed_preclinical_competitors.py` (527) — data blocks reference a **module-level live fetch**
+  (`INNOVENT_ID = innovent_rows[0]...`) → not pure-data-extractable.
+- `approve_discovery.py` (506) — only ~6 lines over; cleanest seam (DB helper layer) tangles
+  creds + `sys.exit` + path-hacks + an interleaved `infer_catalog_category` import. Low ROI.
+
+**Archive files (`scripts/archive/*`, 5 files >500) are OUT OF SCOPE** per CLAUDE.md (historical).
+
+Count: 34 real targets (excl. archive) at session start → **30 remaining** after this push.
+
+---
+
 Every file > 500 lines, triaged by **how it's invoked** (= blast radius if a split
 goes wrong), with a recommended split approach and the verification gate each needs.
 This is the managed backlog for Phase 3. Method throughout: **§3 byte-identical
