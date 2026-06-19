@@ -7,7 +7,7 @@ Phase E5 in the Weekend Sprint. Finds data contradictions across the database
 — where two pieces of stored data conflict with each other.
 
 CONTRADICTION TYPES:
-  1. Drug stage vs trial_registries phase mismatch
+  1. Drug stage vs trials phase mismatch
   2. Brand name without approval stage
   3. company_id originator rule violations (drug.company_id vs deal records)
   4. Duplicate entity detection (>85% name similarity)
