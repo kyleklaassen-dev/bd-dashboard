@@ -11,6 +11,10 @@
 | `scripts/seed_targets.py` | 791→408 | `seed_targets_data.py` (pure data) | #45 |
 | `scripts/seed_competes_with.py` | 692→394 | `competes_targets.py` + `competes_edges.py` | #47 |
 | `scripts/compute_landscape_coverage.py` | 543→262 | `landscape_coverage_base.py` + `landscape_coverage_metrics.py` | #49 |
+| `scripts/consistency_checker.py` | 916→4×<500 | `consistency_base` + `_checks_fields` + `_checks_graph` + orchestrator | #51 |
+| `scripts/coverage_gap_finder.py` | 725→4×<500 | `coverage_gap_base` + `_a` + `_b` + orchestrator | #52 |
+| `scripts/human_queue_builder.py` | 635→260+407 | `human_queue_base` + orchestrator | #53 |
+| `src/meridian/scoring/compute_attribute_completeness.py` | 550→354 | `attribute_dictionary.py` (pure data) | #54 |
 
 Method proven headless: byte-identical relocation → `py_compile` + `check_undefined_names`
 + **runtime functional smoke** (catches missing stdlib imports the static check misses —
@@ -22,11 +26,13 @@ nothing to relocate; needs *extraction* refactor, supervised), `enrichment/compa
 (prompt text), `identity/identity_resolution.py` (converge on `entity_matcher`, don't split),
 `scoring/acquisition/scoring.py` (already modular, test-covered).
 
+**DRY_RUN-global trio: DONE (#51/#52/#53).** The runtime-accessor refactor (`_RUNTIME` dict +
+`set_dry_run()`/`is_dry_run()` in the base module) was proven safe by end-to-end `--dry-run`
+smokes showing writes suppressed (`[DRY-RUN]` lines) across the module split, plus a
+`spec_from_file_location` dynamic-load sim from `/tmp` (how weekend_sprint loads them). Each
+orchestrator bootstraps `sys.path` before sibling imports. See [[section3-split-method]].
+
 **SEED tier deferred (need bespoke work, NOT unattended byte-identical):**
-- `consistency_checker.py`, `coverage_gap_finder.py`, `human_queue_builder.py` — **mutable
-  `DRY_RUN` global write-gate**: `run()` rebinds `global DRY_RUN`, `sb_post/upsert` read it.
-  Splitting writers to a base module splits the global → dry-run could write prod. Needs the
-  runtime-accessor refactor (semantic, supervised).
 - `drug_enrichment.py` (876) — clean-ish seams but **scattered**, and `enrich_drug` is called
   nightly by weekend_sprint phase B1 → PIPE-level blast radius despite SEED filing.
 - ~~`compute_landscape_coverage.py`~~ — **DONE #49** (base + metrics; verified by end-to-end `--dry-run` smoke, all writes suppressed).
@@ -37,21 +43,32 @@ nothing to relocate; needs *extraction* refactor, supervised), `enrichment/compa
 
 **Archive files (`scripts/archive/*`, 5 files >500) are OUT OF SCOPE** per CLAUDE.md (historical).
 
-Count: 34 real targets (excl. archive) at session start → **29 remaining** after this push (6 splits merged).
+Count: 34 real targets (excl. archive) at session start → **25 remaining** after this push
+(**10 splits merged**: #42, #43, #44, #45, #47, #49, #51, #52, #53, #54).
 
-### What's left, and why it's NOT unattended-safe
-The cleanly auto-splittable SEED/LIB files are now **exhausted**. Every remaining file needs a
-human gate by its own nature:
-- **DRY_RUN-global trio** (`consistency_checker`, `coverage_gap_finder`, `human_queue_builder`) —
-  the runtime-accessor refactor is a *semantic* change to write-gating; a slip means dry-run writes
-  to prod. **Supervise.** (Precedent recipe exists: `scripts/weekend/runtime.py`.)
-- **PIPE tier (19)** — each on a cron; the triage gate requires **Kyle dry-runs the entrypoint
-  before merge**. Start safest: `compute_attribute_completeness`, `score_foresight`.
-- **DASH tier (9)** — global-scope `<script>` files; must be **browser-verified** against live data.
-- **Marginal/tangled** (`approve_discovery`, `drug_enrichment`, `seed_preclinical`) — see reasons above.
+### What's left (25), and the per-file approach
+The clean/fast tier (pure-data extractions, the DRY_RUN-global trio, the LIB tier) is **exhausted**.
+What remains is mostly **large PIPE files** that each need a real base-module split + an end-to-end
+`--dry-run` smoke. The recipe is proven (the trio + landscape_coverage); these are just bigger:
+- **PIPE, has a dry-run/`--write` flag → directly smoke-able** the same way the trio was:
+  `score_foresight.py` (549, import-time `DRY`), `patentsview_patents.py` (509, default `DRY=True` —
+  but only 9 lines over with scattered data + circular `norm`/`execute_sql` coupling → low ROI),
+  `compute_coverage.py` (642), `conflict_detector.py` (943), `source_verifier.py` (815),
+  `research.py` (913, **nightly chain root** — do last), `ct_gov_sync.py`, `signal_monitor.py`,
+  `process_queue_item.py`, `review_submitted_intel.py`, `fetch_homepage_news.py`,
+  `drug_intelligence_researcher.py`, `bd_recommender.py`, `validate_ground_truth.py`,
+  `company_validator.py`, `company_enrichment.py`, `products/issue/fetch.py`.
+- **Skip / converge** (unchanged): `assessment.py` (one 633-line fn), `prompts.py` (text),
+  `identity_resolution.py` (converge on entity_matcher), `acquisition/scoring.py` (already modular),
+  `seed_preclinical_competitors.py` (module-level live fetch), `approve_discovery.py` (tangled, 6 over),
+  `drug_enrichment.py` (scattered + cron).
+- **DASH tier (9)** — `app.js` (13.5k) etc.; browser-verified, supervised; externalize
+  `index.html` inline JS first, then `app.js` per `STATUS_AND_GAPS §4`.
+- **`weekend_sprint.py` (3005)** — the big one; already partially decoupled (#34/#36). Its own project.
 
-Recommended resume order when supervised: PIPE safest-two (dry-run gated) → DRY_RUN trio (accessor
-refactor) → DASH (externalize `index.html` inline JS first, then `app.js` per `STATUS_AND_GAPS §4`).
+Recommended resume: pick PIPE files with a dry-run flag, base-split + smoke each (proven recipe),
+biggest-safest first; leave `research.py` (chain root) and `weekend_sprint.py` for focused sessions;
+DASH last.
 
 ---
 
