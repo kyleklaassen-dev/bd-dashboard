@@ -26,15 +26,13 @@ def read(p):
 # saw sb_upsert/sb_post/requests.* and missed sb_patch + raw-REST helpers — which is
 # exactly why this scoreboard reported a false "drugs 0" while 20 bypasses existed.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from audit_core_writers import find_bypasses, BASELINE_FILES  # noqa: E402
+from audit_core_writers import (  # noqa: E402
+    find_bypasses, BASELINE_FILES, write_helper_files as _write_helper_files, HELPER_BASELINE)
 
-# Root cause of write-path drift: ad-hoc write helpers scattered across the repo.
-# Every one is a place a future bypass can hide. Target: consolidate onto
-# meridian.database.client / the Writers and drive this toward 0.
-_HELPER_DEF = re.compile(r'^\s*def (sb_patch|sb_post|sb_upsert|sb_insert|sb_delete|sb_write|rest|_req)\(')
-write_helper_files = sorted({rel(p) for p in PYFILES
-                             if "database/client.py" not in rel(p)
-                             and any(_HELPER_DEF.search(l) for l in read(p).splitlines())})
+# Root cause of write-path drift: ad-hoc write helpers scattered across the repo
+# (every one is a place a future bypass can hide). Detected by the SAME function
+# the CI ratchet uses — one source of truth.
+write_helper_files = _write_helper_files()
 
 # ---- 1. DB write paths to core tables ----
 CORE = ["drugs","companies","entity_edges","catalysts"]

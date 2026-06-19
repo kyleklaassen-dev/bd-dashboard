@@ -81,6 +81,36 @@ BASELINE_FILES = {
     "src/meridian/enrichment/company/common.py",  # docstring of _catalyst_upsert (not a real write)
 }
 
+# ── Root-cause ratchet: ad-hoc write helpers. Each local sb_*/rest/_req that does
+#    raw REST writes (instead of the shared client/Writers) is a place a future
+#    core-table bypass can hide. The count only ever goes DOWN: new ones fail CI.
+#    Drive toward 0 by consolidating onto meridian.database. (Shared by the health
+#    scoreboard so the two never use different definitions — see lesson: one
+#    source of truth.)
+HELPER_BASELINE = 46
+_HELPER_DEF = re.compile(
+    r"^\s*def (sb_patch|sb_post|sb_upsert|sb_insert|sb_delete|sb_write|rest|_req)\("
+)
+
+
+def write_helper_files():
+    """Repo-relative paths of files that define their own ad-hoc REST write helper."""
+    out = []
+    for d in SCAN_DIRS:
+        for f in (REPO_ROOT / d).rglob("*.py"):
+            rel = str(f.relative_to(REPO_ROOT))
+            if any(h in "/" + rel for h in SKIP_HINTS):
+                continue
+            if rel.replace("\\", "/").endswith("database/client.py"):
+                continue  # THE sanctioned shared client — its helpers are the target
+            try:
+                txt = f.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if any(_HELPER_DEF.search(ln) for ln in txt.splitlines()):
+                out.append(rel)
+    return sorted(out)
+
 
 def find_bypasses():
     """Return list of (table, relpath, line, verb_call_snippet)."""
@@ -160,17 +190,28 @@ def main() -> int:
     print(f"baselined debt: {len(baselined)} site(s) in {len(BASELINE_FILES)} known files")
     print(f"NEW bypasses (outside baseline): {len(new)}")
 
+    # root-cause ratchet
+    helpers = write_helper_files()
+    grew = len(helpers) - HELPER_BASELINE
+    print(f"ad-hoc write-helper files: {len(helpers)} (baseline {HELPER_BASELINE}; "
+          f"{'+' + str(grew) + ' NEW — must consolidate, not add' if grew > 0 else 'ok, ≤ baseline'})")
+
+    fail = False
     if args.strict and rows:
         print("\n[strict] FAIL — core tables must be written only through their Writer.")
-        return 1
+        fail = True
     if args.ci and new:
         print("\n[ci] FAIL — a NEW direct write to a core table was added. Route it "
               "through the table's Writer (e.g. DrugWriter().update_fields(id, fields)).")
-        return 1
+        fail = True
+    if args.ci and grew > 0:
+        print("\n[ci] FAIL — a NEW ad-hoc write helper was added. Use the shared "
+              "meridian.database client/Writers instead; the count only goes down.")
+        fail = True
     if not args.strict and not args.ci:
-        print("\n(report only — pass --ci to fail on new bypasses, --strict for all)")
-    print("OK" if not (args.strict and rows) and not (args.ci and new) else "FAIL")
-    return 0
+        print("\n(report only — pass --ci to fail on new bypasses/helpers, --strict for all)")
+    print("FAIL" if fail else "OK")
+    return 1 if fail else 0
 
 
 if __name__ == "__main__":
