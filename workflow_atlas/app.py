@@ -17,6 +17,7 @@ import streamlit as st
 
 from atlas.audit import audit, summarize
 from atlas.code import analyze, call_flow_dot, plain_flow_dot
+from atlas.docs import load_docs
 from atlas.db import (db_audit, db_summary, load_tables, workflows_touching,
                       CORE_TABLES)
 from atlas.graphs import chain_map_dot, db_core_governance_dot, workflow_flow_dot
@@ -152,6 +153,8 @@ with st.sidebar:
     st.caption(f"{len(WORKFLOWS)} workflows · live from `.github/workflows`")
     if st.button("📊 Overview", width="stretch"):
         go("overview")
+    if st.button("📚 Read-first docs", width="stretch"):
+        go("docs")
     if st.button("⭐ Core example (Stock Prices)", width="stretch"):
         go("wf::stock-prices.yml")
     if st.button("🔗 Workflow map", width="stretch"):
@@ -604,12 +607,51 @@ def page_db_gaps():
         st.info("No findings match the current filter.")
 
 
+def page_docs():
+    st.title("📚 Read-first docs")
+    st.markdown(
+        "The canon every session loads **before touching anything** (CLAUDE.md "
+        "§Read-first + §Session start). This page makes that canon reviewable: "
+        "what each doc is for, whether it exists, and how fresh it is."
+    )
+    cards = load_docs()
+    missing = [c for c in cards if not c.exists]
+    stale = [c for c in cards if c.exists and (c.age_days or 0) > 14]
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Docs", len(cards))
+    c2.metric("Missing", len(missing), delta=None if not missing else "⚠", delta_color="inverse")
+    c3.metric("Stale (>14d)", len(stale))
+    if missing:
+        st.error("Missing: " + ", ".join(f"`{c.path}`" for c in missing))
+
+    st.subheader("The canon (in load order)")
+    labels = []
+    for c in cards:
+        flag = "❌" if not c.exists else ("🟠" if (c.age_days or 0) > 14 else "🟢")
+        labels.append(f"{flag} {c.title}  ·  {c.freshness}")
+    idx = st.radio("Pick a doc to review", range(len(cards)),
+                   format_func=lambda i: labels[i], label_visibility="collapsed")
+    doc = cards[idx]
+    st.markdown(f"### {doc.title}")
+    st.caption(f"`{doc.path}` · {doc.lines} lines · updated {doc.freshness}")
+    st.info(doc.role)
+    if doc.exists:
+        with st.expander("Render", expanded=True):
+            st.markdown(doc.text)
+        with st.expander("Raw"):
+            st.code(doc.text, language="markdown")
+    else:
+        st.error(f"`{doc.path}` does not exist — the session-start protocol expects it.")
+
+
 # --------------------------------------------------------------------------- #
 # Router
 # --------------------------------------------------------------------------- #
 view = st.session_state["view"]
 if view == "overview":
     page_overview()
+elif view == "docs":
+    page_docs()
 elif view == "map":
     page_map()
 elif view == "mental":
