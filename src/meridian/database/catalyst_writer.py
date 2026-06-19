@@ -71,6 +71,22 @@ class CatalystWriter:
             report["errors"].append(f"write failed: {code} {str(body)[:160]}")
         return report
 
+    def update_fields(self, catalyst_id, fields):
+        """Governance-checked partial update of an EXISTING catalyst (no dedup).
+        For field patches like resolving a catalyst (resolved/catalyst_status)."""
+        report = {"action": "update", "catalyst_id": catalyst_id, "errors": [], "dry_run": self.dry_run}
+        errs, merged = self.check_governance({**fields, "id": catalyst_id})
+        if errs:
+            report["errors"] = errs
+            return report
+        merged.pop("id", None)
+        if self.dry_run:
+            return report
+        code, body, _ = client.update("catalysts", f"id=eq.{catalyst_id}", merged)
+        if code >= 300:
+            report["errors"].append(f"update failed: {code} {str(body)[:160]}")
+        return report
+
 
 if __name__ == "__main__":
     w = CatalystWriter(dry_run=True)

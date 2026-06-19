@@ -157,9 +157,9 @@ def log_event(cat: dict, event_date: str, foreseen: bool, source_url: str,
 def resolve_catalyst(cat_id: int, note: str) -> None:
     if DRY:
         return
-    rest(f"catalysts?id=eq.{cat_id}", "PATCH",
-         {"resolved": True, "catalyst_status": "met", "resolved_note": note[:500]},
-         prefer="return=minimal")
+    from meridian.database import update_catalyst
+    update_catalyst(cat_id, {"resolved": True, "catalyst_status": "met",
+                             "resolved_note": note[:500]})
 
 
 def main() -> int:
