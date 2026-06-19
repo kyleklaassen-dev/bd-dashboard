@@ -426,7 +426,7 @@ AFTER EVERY INDEX.HTML DEPLOY
 <div class="tab-bar">
  <!-- Icon nav buttons — far left -->
  <div class="nav-icon-strip" id="nav-icon-strip">
-   <button class="nav-icon-btn active" id="nav-icon-home" onclick="navTo('home')" title="Home">🏠</button>
+   <button class="nav-icon-btn active" id="nav-icon-home" onclick="navTo('homeprev')" title="Home">🏠</button>
    <button class="nav-icon-btn" id="nav-icon-drugs" onclick="navTo('drugs-know')" title="Drugs to Know">💊</button>
    <!-- Molecule dropdown -->
    <div class="mol-dd-wrap" id="mol-dd-wrap">
@@ -460,21 +460,18 @@ AFTER EVERY INDEX.HTML DEPLOY
  </div>
  <!-- Insights + Meridian + Market — far right -->
  <div class="nav-icon-right" style="display:flex;align-items:center;gap:4px;">
-   <!-- Live Intelligence — external live page (opens new tab). Added 2026-06-07. -->
-   <button class="nav-icon-btn" id="nav-icon-live" onclick="navTo('live')" title="Live Intelligence — the real-time Meridian feed" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#1a2f50;color:#fff;border-color:#1a2f50;letter-spacing:.2px;">◇ Live</button>
-   <!-- Coverage Atlas — data dictionary + phase-conditional completeness + paid-platform benchmark. Added 2026-06-07 (Kyle voice-memo build). In-dashboard tab per Kyle 2026-06-07. -->
-   <button class="nav-icon-btn" id="nav-icon-atlas" onclick="navTo('atlas')" title="Coverage Atlas — what Meridian knows, the gaps by phase, and the paid-platform benchmark" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#13524a;color:#fff;border-color:#13524a;letter-spacing:.2px;">◈ Atlas</button>
+   <!-- Live Intelligence + Coverage Atlas consolidated into Intelligence & Coverage (2026-06-19, rec #5) — now sub-views of the 📡 button. -->
    <button class="nav-icon-btn" id="nav-icon-insights" onclick="navTo('industry-insights')" title="Industry Insights">💡</button>
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <button class="nav-icon-btn" id="nav-icon-predictions" onclick="navTo('predictions')" title="Predictions — Meridian's track record, every falsifiable call scored against ground truth">📈</button>
    <!-- DEPRECATED 2026-06-06: Pharma Landscape (🏛️), Activity Feed (🔄), and Saved Views (🔖) entry points removed per Kyle. Panes/JS retained but unreachable for the deprecation window. -->
   <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue · all items needing review">🔍</button>
-  <button class="nav-icon-btn" id="nav-icon-homeprev" onclick="navTo('homeprev')" title="Home Preview — new role-lens design (live)" style="background:#3b1d6e;color:#fff;border-color:#5b2da8">✨</button>
+   <!-- 2026-06-19 (rec #9): Home Preview promoted to the default Home (🏠) — standalone ✨ entry removed. -->
   <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
   <!-- Reads — short interpretive takes from research (research_reads). Added 2026-06-10. -->
   <button class="nav-icon-btn" id="nav-icon-reads" onclick="navTo('reads')" title="Reads — short interpretive takes from research" style="position:relative;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#5b2da8;color:#fff;border-color:#5b2da8;letter-spacing:.2px;">📑 Reads<span id="reads-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 2px #fff">0</span></button>
   <!-- Intelligence — surfaces previously-hidden backend tables (genetics, trial-design quality, conference signals, EU approvals, manufacturing, strategic insights, narrative trust). Added 2026-06-15. -->
-  <button class="nav-icon-btn" id="nav-icon-intel2" onclick="navTo('intel2')" title="Intelligence — hidden backend signals: genetic validation, trial-design quality, conference late-breakers, EU approvals, manufacturing/supply candidates, strategic insights, narrative trust" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#0b5e52;color:#fff;border-color:#0b5e52;letter-spacing:.2px;">📡 Intelligence</button>
+  <button class="nav-icon-btn" id="nav-icon-intel2" onclick="navTo('intel2')" title="Intelligence — hidden backend signals: genetic validation, trial-design quality, conference late-breakers, EU approvals, manufacturing/supply candidates, strategic insights, narrative trust" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#0b5e52;color:#fff;border-color:#0b5e52;letter-spacing:.2px;">📡 Intelligence &amp; Coverage</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -487,9 +484,7 @@ AFTER EVERY INDEX.HTML DEPLOY
  <button class="tab-btn" onclick="switchTab('fcrn',this)" style="display:none">FcRn Bispecific</button>
  <button class="tab-btn" onclick="switchTab('ace',this)" style="display:none">BCMA × CD19 × CD3</button>
  <button class="tab-btn" onclick="switchTab('meridian-issue',this)" style="display:none">Today's Issue</button>
- <button class="tab-btn" onclick="switchTab('live',this)" style="display:none">Live Intelligence</button>
- <button class="tab-btn" onclick="switchTab('atlas',this)" style="display:none">Coverage Atlas</button>
-    <button class="tab-btn" onclick="switchTab('drugs-know', this)">Drugs to Know</button>
+     <button class="tab-btn" onclick="switchTab('drugs-know', this)">Drugs to Know</button>
         <!-- DEPRECATED 2026-06-06: Pharma Landscape tab button removed (tab retired). -->
         <button class="tab-btn" onclick="switchTab('discovery-queue', this)">Discovery Queue</button>
         <button class="tab-btn" onclick="switchTab('homeprev', this)">Home Preview</button>
@@ -579,7 +574,8 @@ AFTER EVERY INDEX.HTML DEPLOY
 </div>
 
 <!-- ══════════════ HOME TAB: THE MERIDIAN ══════════════ -->
-<div class="tab-pane active" id="tab-home">
+<!-- 2026-06-19 (rec #9): old Home deprecated as landing — Home Preview (#tab-homeprev) is now the default. Pane retained but no longer default/active and no longer in nav. -->
+<div class="tab-pane" id="tab-home">
 
  <!-- ── Welcome Center ─────────────────────────────────────────── -->
  <div id="home-welcome">
@@ -3130,13 +3126,7 @@ AFTER EVERY INDEX.HTML DEPLOY
 <!-- ═══════════════════════════════════════════════════════════════════
      DISCOVERY QUEUE TAB — review + approve/reject candidates from Step 1
      ═══════════════════════════════════════════════════════════════════ -->
-<!-- Live Intelligence + Coverage Atlas — embedded as in-dashboard tabs (Kyle 2026-06-07: no external tabs). Iframes are same-origin (GitHub Pages); src set lazily on first visit. -->
-<div class="tab-pane" id="tab-live" style="padding:0;background:#f4f7fb">
-  <iframe id="live-frame" data-src="web/Meridian_Live.html" title="Live Intelligence" style="display:block;width:100%;height:calc(100vh - 130px);border:0;background:#f4f7fb"></iframe>
-</div>
-<div class="tab-pane" id="tab-atlas" style="padding:0;background:#f4f7fb">
-  <iframe id="atlas-frame" data-src="web/Meridian_Coverage.html" title="Coverage Atlas" style="display:block;width:100%;height:calc(100vh - 130px);border:0;background:#f4f7fb"></iframe>
-</div>
+<!-- Live Intelligence + Coverage Atlas relocated into the Intelligence & Coverage tab (#tab-intel2) as sub-views (2026-06-19, rec #5). -->
 <div class="tab-pane" id="tab-discovery-queue" style="padding:0;background:#f1f5f9;min-height:100vh">
   <div style="max-width:1300px;margin:0 auto;padding:24px 20px 48px">
 
@@ -3233,7 +3223,7 @@ AFTER EVERY INDEX.HTML DEPLOY
      fetch via publishable key, IIFE JS (window.mlInit). Touches no existing fn.
      This is a PREVIEW for review before any home replacement.
      ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-pane" id="tab-homeprev" style="padding:0;background:#f6f8fb;min-height:100vh">
+<div class="tab-pane active" id="tab-homeprev" style="padding:0;background:#f6f8fb;min-height:100vh">
 <link rel="stylesheet" href="assets/css/style_08.css">
 <div id="ml-app">
   <div class="ml-bar">
@@ -5437,26 +5427,45 @@ function dknDismissChanges(){
 
 <div class="tab-pane" id="tab-intel2" style="padding:0;background:#f3f7f6;min-height:100vh">
   <div class="intel2-hero">
-    <h1>📡 Intelligence — hidden backend signals</h1>
-    <p>Source-bearing tables that no other surface reads: genetic target validation, trial-design believability, conference late-breakers, EU approval timing, manufacturing &amp; supply-deal candidates, the platform's own strategic insights, and the per-claim narrative trust layer. Everything here reads the same Supabase as the rest of the dashboard (publishable key, read-only).</p>
+    <h1>📡 Intelligence &amp; Coverage</h1>
+    <p>One surface for the platform's backend intelligence and its data-coverage view. <b>Intelligence</b> — source-bearing signals no other tab reads (genetic validation, trial-design believability, conference late-breakers, EU approval timing, manufacturing &amp; supply candidates, strategic insights, narrative trust). <b>Coverage Atlas</b> — what Meridian knows per molecule, the gaps by phase, and the paid-platform benchmark. <b>Full Live Readout</b> — the complete cross-domain data dump. All read the same Supabase (publishable key, read-only).</p>
   </div>
-  <div class="intel2-nav" id="intel2-nav">
-    <button class="intel2-navbtn intel2-on" data-sec="insights">💡 Strategic Insights</button>
-    <button class="intel2-navbtn" data-sec="genetics">🧬 Genetic Validation</button>
-    <button class="intel2-navbtn" data-sec="trials">🧪 Trial-Design Quality</button>
-    <button class="intel2-navbtn" data-sec="conf">📊 Conference Signals</button>
-    <button class="intel2-navbtn" data-sec="eu">🇪🇺 EU Approvals</button>
-    <button class="intel2-navbtn" data-sec="mfg">🏭 Manufacturing</button>
-    <button class="intel2-navbtn" data-sec="trust">🔗 Narrative Trust</button>
-    <button class="intel2-navbtn" data-sec="kols">👤 KOL Influence</button>
-    <button class="intel2-navbtn" data-sec="grants">💰 Grant Funding</button>
-    <button class="intel2-navbtn" data-sec="ownership">🏢 Corporate Ownership</button>
-    <button class="intel2-navbtn" data-sec="market">📈 Market &amp; Unmet Need</button>
+  <!-- Sub-tab strip — consolidates the former Live / Coverage Atlas / Intelligence tabs (2026-06-19, rec #5) -->
+  <div class="intel2-subtabs" id="intel2-subtabs">
+    <button class="intel2-subtab intel2-subon" data-view="intelligence" onclick="intelSubTab('intelligence')">📡 Intelligence</button>
+    <button class="intel2-subtab" data-view="coverage" onclick="intelSubTab('coverage')">◈ Coverage Atlas</button>
+    <button class="intel2-subtab" data-view="live" onclick="intelSubTab('live')">◇ Full Live Readout</button>
   </div>
-  <div class="intel2-body" id="intel2-body">
-    <div class="intel2-muted" style="text-align:center">Loading intelligence…</div>
+
+  <div id="intel2-view-intelligence">
+    <div class="intel2-nav" id="intel2-nav">
+      <button class="intel2-navbtn intel2-on" data-sec="insights">💡 Strategic Insights</button>
+      <button class="intel2-navbtn" data-sec="genetics">🧬 Genetic Validation</button>
+      <button class="intel2-navbtn" data-sec="trials">🧪 Trial-Design Quality</button>
+      <button class="intel2-navbtn" data-sec="conf">📊 Conference Signals</button>
+      <button class="intel2-navbtn" data-sec="eu">🇪🇺 EU Approvals</button>
+      <button class="intel2-navbtn" data-sec="mfg">🏭 Manufacturing</button>
+      <button class="intel2-navbtn" data-sec="trust">🔗 Narrative Trust</button>
+      <button class="intel2-navbtn" data-sec="kols">👤 KOL Influence</button>
+      <button class="intel2-navbtn" data-sec="grants">💰 Grant Funding</button>
+      <button class="intel2-navbtn" data-sec="ownership">🏢 Corporate Ownership</button>
+      <button class="intel2-navbtn" data-sec="market">📈 Market &amp; Unmet Need</button>
+    </div>
+    <div class="intel2-body" id="intel2-body">
+      <div class="intel2-muted" style="text-align:center">Loading intelligence…</div>
+    </div>
+    <div class="intel2-foot" id="intel2-foot"></div>
   </div>
-  <div class="intel2-foot" id="intel2-foot"></div>
+
+  <!-- Coverage Atlas (moved from retired #tab-atlas) -->
+  <div id="intel2-view-coverage" style="display:none">
+    <iframe id="atlas-frame" data-src="web/Meridian_Coverage.html" title="Coverage Atlas" style="display:block;width:100%;height:calc(100vh - 190px);border:0;background:#f4f7fb"></iframe>
+  </div>
+
+  <!-- Full Live Readout (moved from retired #tab-live) -->
+  <div id="intel2-view-live" style="display:none">
+    <iframe id="live-frame" data-src="web/Meridian_Live.html" title="Live Intelligence" style="display:block;width:100%;height:calc(100vh - 190px);border:0;background:#f4f7fb"></iframe>
+  </div>
 </div><!-- /tab-intel2 -->
 
 <script src="assets/js/intel2.js"></script>

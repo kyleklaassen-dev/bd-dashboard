@@ -5366,8 +5366,20 @@ function _lazyFrame(frameId) {
   // cache-bust per session so the embedded page is never a stale cached copy (Kyle 2026-06-07)
   if (f && !f.src) f.src = f.dataset.src + (f.dataset.src.includes('?') ? '&' : '?') + 'cb=' + Date.now();
 }
-registerTab('live',  { onEnter() { _lazyFrame('live-frame'); } });
-registerTab('atlas', { onEnter() { _lazyFrame('atlas-frame'); } });
+// 2026-06-19 (rec #5): Live Intelligence + Coverage Atlas consolidated into the
+// Intelligence & Coverage tab (#tab-intel2) as sub-views. The sub-tab switch
+// lazy-loads each iframe on first open.
+function intelSubTab(view) {
+  ['intelligence','coverage','live'].forEach(v => {
+    const pane = document.getElementById('intel2-view-' + v);
+    if (pane) pane.style.display = (v === view) ? '' : 'none';
+  });
+  document.querySelectorAll('#intel2-subtabs .intel2-subtab').forEach(b => {
+    b.classList.toggle('intel2-subon', b.dataset.view === view);
+  });
+  if (view === 'coverage') _lazyFrame('atlas-frame');
+  if (view === 'live')     _lazyFrame('live-frame');
+}
 registerTab('meridian-issue', {
   onEnter() {
     loadMeridianIssue();
@@ -11854,7 +11866,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
   }
 
   registerTab('home', { onEnter() { initHomeWelcome(); }, onLeave() { _hwPause(); } });
-  document.addEventListener('DOMContentLoaded', () => { initHomeWelcome(); });
+  // 2026-06-19 (rec #9): Home Preview (#tab-homeprev) is the default landing. Init it on load
+  // (its mlInit is load-once guarded). The old Home no longer auto-polls on load — its
+  // initHomeWelcome only runs if a user explicitly navigates to the deprecated 'home' tab.
+  document.addEventListener('DOMContentLoaded', () => { window.mlInit && window.mlInit(); });
 })();
 
 document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
@@ -13479,9 +13494,8 @@ const NAV_ICON_MAP = {
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
   'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
   'discovery-queue': 'nav-icon-queue',
-  'homeprev': 'nav-icon-homeprev',
-  'live': 'nav-icon-live',
-  'atlas': 'nav-icon-atlas',
+  'homeprev': 'nav-icon-home',  /* 2026-06-19 (rec #9): Home Preview is now the default Home (🏠). */
+  /* 2026-06-19 (rec #5): 'live' + 'atlas' consolidated into intel2 sub-views. */
   'intel2': 'nav-icon-intel2',
   /* DEPRECATED 2026-06-06: 'changes-feed': 'nav-icon-changes' (Activity Feed retired) */
 };
