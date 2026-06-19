@@ -26,7 +26,6 @@ import argparse
 from datetime import datetime, date
 import urllib.request
 import urllib.error
-import base64
 
 # ---------------------------------------------------------------------------
 # Config
@@ -36,13 +35,20 @@ WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _read_key(filename):
+    """Read a credential file, tolerating absence (returns "" if missing).
+
+    Matches the pattern in consistency_checker.py's _read_cred — a missing
+    optional credential should not crash the script at import time.
+    """
     path = os.path.join(WORKSPACE, filename)
-    with open(path) as f:
-        return f.read().strip()
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""
 
 
 SUPA_KEY = _read_key(".supabase_service_key")
-GITHUB_TOKEN = _read_key(".github_token")
 
 RUN_ID = f"svs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 TODAY = date.today().isoformat()
@@ -298,66 +304,6 @@ def build_platform_views(companies, drug_idx, scores, dry_run=False):
 
 
 # ---------------------------------------------------------------------------
-# Step 6: GitHub commit
-# ---------------------------------------------------------------------------
-
-def commit_to_github(dry_run=False):
-    if dry_run:
-        print("  [DRY] Skipping GitHub commit")
-        return
-
-    token = GITHUB_TOKEN
-    repo = "kyleklaassen-dev/bd-dashboard"
-    path = "scripts/compute_strategic_value.py"
-    api_url = f"https://api.github.com/repos/{repo}/contents/{path}"
-
-    with open(os.path.abspath(__file__), "rb") as f:
-        content = f.read()
-    encoded = base64.b64encode(content).decode()
-
-    # Get existing SHA
-    sha = None
-    req_get = urllib.request.Request(
-        api_url,
-        headers={"Authorization": f"token {token}",
-                 "Accept": "application/vnd.github.v3+json"}
-    )
-    try:
-        with urllib.request.urlopen(req_get) as resp:
-            sha = json.loads(resp.read()).get("sha")
-    except urllib.error.HTTPError as e:
-        if e.code != 404:
-            print(f"  GitHub GET warning: {e.code}", file=sys.stderr)
-
-    payload = {
-        "message": f"feat: compute_strategic_value.py — SVS scores for 121 companies [{RUN_ID}]",
-        "content": encoded,
-        "branch": "main",
-    }
-    if sha:
-        payload["sha"] = sha
-
-    req_put = urllib.request.Request(
-        api_url,
-        data=json.dumps(payload).encode(),
-        headers={
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-        },
-        method="PUT"
-    )
-    try:
-        with urllib.request.urlopen(req_put) as resp:
-            result = json.loads(resp.read())
-            sha_short = result.get("commit", {}).get("sha", "")[:12]
-            print(f"  GitHub: committed {sha_short}...")
-    except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        print(f"  GitHub commit failed: {e.code} — {err[:200]}", file=sys.stderr)
-
-
-# ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
 
@@ -416,32 +362,29 @@ def main():
     if dry_run:
         print("=== DRY RUN — no DB writes ===")
 
-    print("\n[1/6] Fetching data...")
+    print("\n[1/5] Fetching data...")
     companies = fetch_companies()
     drugs = fetch_drugs()
     dcs_rows = fetch_drug_competitive_scores()
     deals = fetch_deals()
     fetch_partnerships()
 
-    print("\n[2/6] Building indexes...")
+    print("\n[2/5] Building indexes...")
     drug_idx = build_drug_index(drugs)
     dcs_idx = build_dcs_index(dcs_rows, drugs)
     deal_idx = build_deal_index(deals)
 
-    print("\n[3/6] Computing scores...")
+    print("\n[3/5] Computing scores...")
     scores = {}
     for company in companies:
         scores[company["id"]] = compute_score(company, dcs_idx, deal_idx)
     print(f"  Scored {len(scores)} companies")
 
-    print("\n[4/6] Updating companies.strategic_value_score...")
+    print("\n[4/5] Updating companies.strategic_value_score...")
     update_company_scores(companies, scores, dry_run=dry_run)
 
-    print("\n[5/6] Building company_platform_views...")
+    print("\n[5/5] Building company_platform_views...")
     rows_created, cap_counts = build_platform_views(companies, drug_idx, scores, dry_run=dry_run)
-
-    print("\n[6/6] Committing script to GitHub...")
-    commit_to_github(dry_run=dry_run)
 
     print_report(companies, scores, cap_counts)
     print(f"\nComplete. Run ID: {RUN_ID}")
