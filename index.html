@@ -3333,6 +3333,8 @@ AFTER EVERY INDEX.HTML DEPLOY
 <script src="assets/js/drug_dossier.js"></script>
 <script src="assets/js/company_modal.js"></script>
 <script src="assets/js/app.js"></script>
+<!-- home_welcome.js calls registerTab() at eval time → must load AFTER app.js -->
+<script src="assets/js/home_welcome.js"></script>
 <script>
 function cwToggle(cid){
   var body=document.getElementById(cid+'-body');
