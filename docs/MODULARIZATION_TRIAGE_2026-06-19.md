@@ -15,6 +15,8 @@
 | `scripts/coverage_gap_finder.py` | 725→4×<500 | `coverage_gap_base` + `_a` + `_b` + orchestrator | #52 |
 | `scripts/human_queue_builder.py` | 635→260+407 | `human_queue_base` + orchestrator | #53 |
 | `src/meridian/scoring/compute_attribute_completeness.py` | 550→354 | `attribute_dictionary.py` (pure data) | #54 |
+| `src/meridian/scoring/score_foresight.py` | 549→162+408 | `score_foresight_base.py` + orchestrator | #56 |
+| `src/meridian/scoring/compute_coverage.py` | 642→423 | `coverage_scoring.py` (pure scoring) | #57 |
 
 Method proven headless: byte-identical relocation → `py_compile` + `check_undefined_names`
 + **runtime functional smoke** (catches missing stdlib imports the static check misses —
@@ -43,8 +45,15 @@ orchestrator bootstraps `sys.path` before sibling imports. See [[section3-split-
 
 **Archive files (`scripts/archive/*`, 5 files >500) are OUT OF SCOPE** per CLAUDE.md (historical).
 
-Count: 34 real targets (excl. archive) at session start → **25 remaining** after this push
-(**10 splits merged**: #42, #43, #44, #45, #47, #49, #51, #52, #53, #54).
+Count: 34 real targets (excl. archive) at session start → **23 remaining** after this push
+(**12 splits merged**: #42, #43, #44, #45, #47, #49, #51, #52, #53, #54, #56, #57).
+
+**Schema-drift bugs found while splitting (pre-existing, flagged via spawn_task):** several
+data-layer queries 400 against the current schema. Most are caught + silently return 0 (a QA gap);
+**`compute_coverage.py` HARD-CRASHES** on `drug_targets?role=eq.primary` → the school-week-sprint
+coverage step has been failing. Tables involved: `trial_registries`, `coverage_scores`,
+`catalyst_calendar`, `deals`, `entity_relationships`, `drugs.bd_angle/risk_summary`, `drug_targets`.
+Worth one dedicated schema-vs-query audit.
 
 ### What's left (25), and the per-file approach
 The clean/fast tier (pure-data extractions, the DRY_RUN-global trio, the LIB tier) is **exhausted**.
