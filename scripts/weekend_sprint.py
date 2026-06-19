@@ -113,7 +113,6 @@ SB_UPSERT = {
 
 NOW_ISO  = datetime.datetime.utcnow().isoformat()
 TODAY    = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-SPRINT_ID = f"sprint_{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -224,7 +223,7 @@ def log_phase(phase_id: str, phase_name: str, block: str, status: str,
               records: int = 0, duration: float = 0, error: str = None,
               result: dict = None, alert_level: str = None):
     row = {
-        "sprint_id":          SPRINT_ID,
+        "sprint_id":          runtime.SPRINT_ID,
         "phase_id":           phase_id,
         "phase_name":         phase_name,
         "block":              block,
@@ -2308,7 +2307,7 @@ def phase_f2_next_session_md(all_results: Dict = None) -> Dict:
     sprint_phases = []
     try:
         sprint_phases = sb_get("weekend_sprint_log", {
-            "sprint_id": f"eq.{SPRINT_ID}",
+            "sprint_id": f"eq.{runtime.SPRINT_ID}",
             "select": "phase_id,phase_name,status,records_processed,duration_seconds,error_message",
             "limit": "100",
             "order": "run_at.asc"
@@ -2321,7 +2320,7 @@ def phase_f2_next_session_md(all_results: Dict = None) -> Dict:
     total_records = sum(p.get("records_processed") or 0 for p in sprint_phases)
 
     content = f"""# Meridian Weekend Sprint — {TODAY}
-## Sprint ID: {SPRINT_ID}
+## Sprint ID: {runtime.SPRINT_ID}
 
 ### Sprint Summary
 - Phases completed: {len(completed)} / {len(sprint_phases)}
@@ -2388,7 +2387,7 @@ def phase_f3_sprint_summary() -> Dict:
 
     try:
         sprint_phases = sb_get("weekend_sprint_log", {
-            "sprint_id": f"eq.{SPRINT_ID}",
+            "sprint_id": f"eq.{runtime.SPRINT_ID}",
             "select": "phase_id,status,records_processed,duration_seconds",
             "limit": "100"
         })
@@ -2399,7 +2398,7 @@ def phase_f3_sprint_summary() -> Dict:
         duration = sum(p.get("duration_seconds") or 0 for p in sprint_phases)
 
         summary_row = {
-            "sprint_id":         SPRINT_ID,
+            "sprint_id":         runtime.SPRINT_ID,
             "phase_id":          "SUMMARY",
             "phase_name":        "Sprint Complete",
             "block":             "F",
@@ -2471,7 +2470,7 @@ def _phase_f4_legacy_review_queue() -> Dict:
                 "entity_type": v.get("entity_type"),
                 "entity_id": v.get("entity_id"),
                 "summary": f"{v.get('rule_name')}: {v.get('message')}",
-                "sprint_id": SPRINT_ID,
+                "sprint_id": runtime.SPRINT_ID,
                 "created_at": NOW_ISO,
             })
     except Exception:
@@ -2489,7 +2488,7 @@ def _phase_f4_legacy_review_queue() -> Dict:
                 "entity_type": "drug",
                 "entity_id": f.get("drug_id"),
                 "summary": f"{f.get('validation_type')}: {f.get('message')}",
-                "sprint_id": SPRINT_ID,
+                "sprint_id": runtime.SPRINT_ID,
                 "created_at": NOW_ISO,
             })
     except Exception:
@@ -2569,7 +2568,7 @@ def phase_f6_github_commit() -> Dict:
                 capture_output=True, timeout=30
             )
 
-        commit_msg = f"Weekend sprint {SPRINT_ID}: NEXT_SESSION.md + sprint log [{TODAY}]"
+        commit_msg = f"Weekend sprint {runtime.SPRINT_ID}: NEXT_SESSION.md + sprint log [{TODAY}]"
         r = subprocess.run(
             ["git", "commit", "-m", commit_msg],
             cwd=_REPO_ROOT, env=env, capture_output=True, text=True, timeout=30
@@ -2692,7 +2691,7 @@ def phase_f8_alert_generation() -> Dict:
     try:
         with open(log_path, "w") as f:
             f.write(f"# Meridian Weekend Sprint Log\n")
-            f.write(f"Sprint: {SPRINT_ID}\n")
+            f.write(f"Sprint: {runtime.SPRINT_ID}\n")
             f.write(f"Generated: {NOW_ISO[:19]} UTC\n\n")
             f.write("## Alerts\n")
             for a in alerts:
@@ -2922,7 +2921,7 @@ def run_block(block: str, config: Dict) -> Dict:
 
     log(f"\n{'#'*60}")
     log(f"# BLOCK {block} — {len(phases)} phases")
-    log(f"# Sprint: {SPRINT_ID}")
+    log(f"# Sprint: {runtime.SPRINT_ID}")
     log(f"# Dry-run: {runtime.DRY_RUN}")
     log(f"{'#'*60}\n")
 
@@ -2949,7 +2948,6 @@ def run_block(block: str, config: Dict) -> Dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
-    global SPRINT_ID
 
     parser = argparse.ArgumentParser(
         description="Meridian Weekend Autonomous Sprint Orchestrator"
@@ -2975,10 +2973,10 @@ def main():
 
     runtime.set_dry_run(args.dry_run)
     if args.sprint_id:
-        SPRINT_ID = args.sprint_id
+        runtime.set_sprint_id(args.sprint_id)
 
     log(f"Meridian Weekend Sprint Orchestrator")
-    log(f"Sprint ID: {SPRINT_ID}")
+    log(f"Sprint ID: {runtime.SPRINT_ID}")
     log(f"Dry-run:   {runtime.DRY_RUN}")
     log(f"Supabase:  {SUPABASE_URL}")
 

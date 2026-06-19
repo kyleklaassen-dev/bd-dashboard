@@ -26,3 +26,16 @@ def set_dry_run(value: bool) -> None:
 
 def is_dry_run() -> bool:
     return DRY_RUN
+
+
+# Sprint identifier — defaults to a startup timestamp, overridable via --sprint-id.
+# Mutable shared state like DRY_RUN: read as runtime.SPRINT_ID so every module sees
+# the live value.
+import datetime as _dt
+
+SPRINT_ID = f"sprint_{_dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+
+
+def set_sprint_id(value: str) -> None:
+    global SPRINT_ID
+    SPRINT_ID = value
