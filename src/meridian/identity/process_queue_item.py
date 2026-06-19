@@ -87,7 +87,21 @@ def sb_get(table: str, params: dict) -> list:
         return []
 
 
+# ── Dry-run gate ──────────────────────────────────────────────────────────────
+# The --dry-run flag was previously parsed but never honored (the script wrote
+# regardless). All DB writes funnel through sb_patch / sb_post / insert_trials,
+# which now short-circuit when dry-run is set.
+_RUNTIME = {"dry_run": False}
+def set_dry_run(value: bool) -> None:
+    _RUNTIME["dry_run"] = bool(value)
+def is_dry_run() -> bool:
+    return _RUNTIME["dry_run"]
+
+
 def sb_patch(table: str, params: dict, payload: dict) -> bool:
+    if is_dry_run():
+        log(f"[DRY-RUN] PATCH {table} {params}")
+        return True
     try:
         r = requests.patch(f"{BASE}/{table}", headers=SB_H, params=params, json=payload, timeout=20)
         return r.status_code in (200, 204)
@@ -97,6 +111,9 @@ def sb_patch(table: str, params: dict, payload: dict) -> bool:
 
 
 def sb_post(table: str, payload, prefer: str = "return=minimal") -> bool:
+    if is_dry_run():
+        log(f"[DRY-RUN] POST {table}")
+        return True
     try:
         h = {**SB_H, "Prefer": prefer}
         r = requests.post(f"{BASE}/{table}", headers=h, json=payload, timeout=20)
@@ -206,6 +223,10 @@ def insert_trials(drug_id: str, trials: list) -> int:
         "trial_count":  len(trials),
         "last_searched_at": NOW_ISO,
     }
+
+    if is_dry_run():
+        log(f"[DRY-RUN] would write trial_registries for {drug_id}: {top['nct_id']} ({len(trials)} trials)")
+        return 1
 
     # Try PATCH first (row likely already exists from backfill_v35)
     try:
@@ -649,6 +670,7 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true",
                         help="Classify and log routes only — no Supabase writes")
     args = parser.parse_args()
+    set_dry_run(args.dry_run)
 
     if args.id:
         item = get_item(args.id)
