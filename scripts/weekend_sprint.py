@@ -40,6 +40,8 @@ _REPO_ROOT    = os.path.dirname(_SCRIPTS_DIR)
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
+from weekend import runtime  # shared runtime flags (runtime.DRY_RUN) — read live, never copied
+
 # ── Lazy imports for new agent modules ───────────────────────────────────────
 # These are imported at call time to avoid hard failures if a module is missing.
 def _import_agent(module_name: str):
@@ -113,7 +115,6 @@ NOW_ISO  = datetime.datetime.utcnow().isoformat()
 TODAY    = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 SPRINT_ID = f"sprint_{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 
-DRY_RUN = False  # set by --dry-run flag
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LOGGING
@@ -140,7 +141,7 @@ def sb_get(table: str, params: dict = None) -> List[dict]:
 
 
 def sb_post(table: str, data: dict) -> dict:
-    if DRY_RUN:
+    if runtime.DRY_RUN:
         log(f"  [DRY-RUN] Would POST to {table}: {json.dumps(data)[:120]}", indent=2)
         return data
     url = f"{SUPABASE_URL}/rest/v1/{table}"
@@ -151,7 +152,7 @@ def sb_post(table: str, data: dict) -> dict:
 
 
 def sb_patch(table: str, filters: dict, data: dict) -> int:
-    if DRY_RUN:
+    if runtime.DRY_RUN:
         log(f"  [DRY-RUN] Would PATCH {table} WHERE {filters}: {list(data.keys())}", indent=2)
         return 0
     url = f"{SUPABASE_URL}/rest/v1/{table}"
@@ -162,7 +163,7 @@ def sb_patch(table: str, filters: dict, data: dict) -> int:
 
 
 def sb_upsert(table: str, rows: List[dict], on_conflict: str = "id") -> int:
-    if DRY_RUN:
+    if runtime.DRY_RUN:
         log(f"  [DRY-RUN] Would UPSERT {len(rows)} rows into {table}", indent=2)
         return len(rows)
     url = f"{SUPABASE_URL}/rest/v1/{table}"
@@ -330,8 +331,8 @@ def phase_a2_governance_validation() -> Dict:
                     "brand_name": d.get("brand_name"),
                     "stage": stage
                 })
-                # Write governance violation if not DRY_RUN
-                if not DRY_RUN:
+                # Write governance violation if not runtime.DRY_RUN
+                if not runtime.DRY_RUN:
                     try:
                         sb_post("governance_violations", {
                             "rule_name": "brand_name_implies_approved",
@@ -489,7 +490,7 @@ def phase_a5_coverage_compute() -> Dict:
                 "coverage_score": score,
                 "computed_at": NOW_ISO,
             })
-        if score_rows and not DRY_RUN:
+        if score_rows and not runtime.DRY_RUN:
             sb_upsert("coverage_scores", score_rows, on_conflict="entity_id,entity_type")
         results["drugs_scored"] = len(score_rows)
         log(f"  Scored {len(score_rows)} drugs", indent=2)
@@ -513,7 +514,7 @@ def phase_a6_coverage_gap_finder() -> Dict:
         log("  coverage_gap_finder.py not found — falling back to legacy backlog scan", indent=2)
         return _phase_a6_legacy_backlog()
     try:
-        result = mod.run(dry_run=DRY_RUN)
+        result = mod.run(dry_run=runtime.DRY_RUN)
         records = result.get("total_queued", 0)
         log(f"  Coverage gap finder complete: {records} items queued", indent=2)
         return result
@@ -690,7 +691,7 @@ def phase_b1_drug_enrichment() -> Dict:
                 results["attempted"] += 1
                 try:
                     if hasattr(mod, "enrich_drug"):
-                        success = mod.enrich_drug(drug_id, dry_run=DRY_RUN)
+                        success = mod.enrich_drug(drug_id, dry_run=runtime.DRY_RUN)
                         if success:
                             results["succeeded"] += 1
                         else:
@@ -759,7 +760,7 @@ def phase_b2_company_enrichment() -> Dict:
                 os.path.join(os.path.dirname(_SCRIPTS_DIR), "src", "meridian", "enrichment", "company_enrichment.py"),
                 "--area", area,
             ]
-            if DRY_RUN:
+            if runtime.DRY_RUN:
                 cmd.append("--dry-run")
             log(f"  Running company_enrichment for area={area}", indent=2)
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=env)
@@ -833,7 +834,7 @@ def phase_b3_bd_angle_enrichment() -> Dict:
             f"note timing uncertainty. Output ONLY the 2-3 sentence angle."
         )
         angle = _llm_enrich(prompt, max_tokens=200)
-        if angle and not DRY_RUN:
+        if angle and not runtime.DRY_RUN:
             try:
                 from meridian.database import update_drug
                 update_drug(drug["id"], {"bd_angle": angle})
@@ -853,7 +854,7 @@ def phase_b3_bd_angle_enrichment() -> Dict:
                 log(f"  {drug.get('name')}: bd_angle written", indent=2)
             except Exception as e:
                 log(f"  {drug.get('name')}: patch failed: {e}", indent=2)
-        elif angle and DRY_RUN:
+        elif angle and runtime.DRY_RUN:
             results["succeeded"] += 1
             log(f"  [DRY-RUN] {drug.get('name')}: would write bd_angle", indent=2)
         time.sleep(1)  # rate limit
@@ -900,7 +901,7 @@ def phase_b4_risk_summary_enrichment() -> Dict:
             f"Do NOT fabricate trial results. Output ONLY the 1-2 sentence risk summary."
         )
         risk = _llm_enrich(prompt, max_tokens=150)
-        if risk and not DRY_RUN:
+        if risk and not runtime.DRY_RUN:
             try:
                 from meridian.database import update_drug
                 update_drug(drug["id"], {"risk_summary": risk})
@@ -908,7 +909,7 @@ def phase_b4_risk_summary_enrichment() -> Dict:
                 log(f"  {drug.get('name')}: risk_summary written", indent=2)
             except Exception as e:
                 log(f"  {drug.get('name')}: patch failed: {e}", indent=2)
-        elif risk and DRY_RUN:
+        elif risk and runtime.DRY_RUN:
             results["succeeded"] += 1
         time.sleep(1)
 
@@ -938,7 +939,7 @@ def phase_b5_mechanism_status() -> Dict:
             status = (
                 f"{m}: {n_app} approved, {n_p3} Phase 3, {n_p2} Phase 2 active"
             )
-            if not DRY_RUN:
+            if not runtime.DRY_RUN:
                 try:
                     sb_patch("competitive_landscapes", {"id": row["id"]},
                              {"mechanism_status": status})
@@ -1001,12 +1002,12 @@ def phase_b6_clinical_details() -> Dict:
                     v = parsed.get(f)
                     if v and v != "UNKNOWN":
                         update[f] = v
-                if update and not DRY_RUN:
+                if update and not runtime.DRY_RUN:
                     from meridian.database import update_drug
                     update_drug(drug["id"], update)
                     results["succeeded"] += 1
                     log(f"  {drug.get('name')}: updated {list(update.keys())}", indent=2)
-                elif update and DRY_RUN:
+                elif update and runtime.DRY_RUN:
                     results["succeeded"] += 1
             except Exception as e:
                 log(f"  {drug.get('name')}: parse/patch failed: {e}", indent=2)
@@ -1055,7 +1056,7 @@ def phase_b8_partnership_verification() -> Dict:
 
         # Mark those with source_url as conditionally verified
         can_verify = [p for p in unverified if p.get("source_url")]
-        if can_verify and not DRY_RUN:
+        if can_verify and not runtime.DRY_RUN:
             for p in can_verify[:10]:
                 try:
                     sb_patch("company_partnerships", {"id": p["id"]},
@@ -1153,7 +1154,7 @@ def phase_c3_codev_attribution() -> Dict:
             if partner and len(partner) > 3 and partner in target:
                 results["violations"] += 1
                 log(f"  VIOLATION: {drug.get('name')} — partner name '{partner}' in target field", indent=2)
-                if not DRY_RUN:
+                if not runtime.DRY_RUN:
                     try:
                         sb_post("governance_violations", {
                             "rule_name": "partner_name_in_target",
@@ -1251,7 +1252,7 @@ def phase_c6_relationship_dating() -> Dict:
             "valid_from": "is.null",
             "limit": "50"
         })
-        if undated_partners and not DRY_RUN:
+        if undated_partners and not runtime.DRY_RUN:
             for p in undated_partners:
                 # Use created_at as fallback valid_from
                 created = p.get("created_at")
@@ -1298,7 +1299,7 @@ def phase_c7_conference_catalysts() -> Dict:
         log(f"  News scan failed: {e}", indent=2)
 
     # Add known upcoming conferences as catalysts if not already present
-    if table_exists("catalyst_calendar") and not DRY_RUN:
+    if table_exists("catalyst_calendar") and not runtime.DRY_RUN:
         for conf in conferences:
             try:
                 # Check if already exists
@@ -1395,7 +1396,7 @@ def phase_d1_strategic_value_scoring() -> Dict:
             # Cap at 100
             svs = min(base_score, 100)
 
-            if svs > 0 and not DRY_RUN:
+            if svs > 0 and not runtime.DRY_RUN:
                 try:
                     from meridian.database import update_company
                     update_company(co["id"], {"strategic_value_score": svs})
@@ -1416,7 +1417,7 @@ def phase_d1_strategic_value_scoring() -> Dict:
                 log("  company_strategic_views is empty — running seed_strategic_views", indent=2)
                 mod_sv = _import_agent("seed_strategic_views")
                 if mod_sv and hasattr(mod_sv, "main"):
-                    if not DRY_RUN:
+                    if not runtime.DRY_RUN:
                         import io, contextlib
                         buf = io.StringIO()
                         with contextlib.redirect_stdout(buf):
@@ -1506,7 +1507,7 @@ def phase_d3_drug_competitive_scores() -> Dict:
     mod = _import_agent("patch_competitive_scores_null")
     if mod and hasattr(mod, "main"):
         try:
-            if not DRY_RUN:
+            if not runtime.DRY_RUN:
                 import io, contextlib
                 buf = io.StringIO()
                 with contextlib.redirect_stdout(buf):
@@ -1568,7 +1569,7 @@ def phase_d3_drug_competitive_scores() -> Dict:
             "scored_at": NOW_ISO_local,
             "score_version": 1,
         }
-        if not DRY_RUN:
+        if not runtime.DRY_RUN:
             try:
                 sb_patch("drug_competitive_scores", {"id": row["id"]}, payload)
                 results["scored"] += 1
@@ -1704,7 +1705,7 @@ def phase_d6_area_knowledge_and_catalyst() -> Dict:
         mod = _import_agent("update_area_knowledge_counts")
         if mod and hasattr(mod, "main"):
             try:
-                if not DRY_RUN:
+                if not runtime.DRY_RUN:
                     import io, contextlib
                     buf = io.StringIO()
                     with contextlib.redirect_stdout(buf):
@@ -1744,7 +1745,7 @@ def phase_d6_area_knowledge_and_catalyst() -> Dict:
                             "limit": "500",
                         })
                         count = len({r["drug_id"] for r in dt_rows if r.get("drug_id")})
-                        if not DRY_RUN:
+                        if not runtime.DRY_RUN:
                             sb_patch("area_knowledge", {"id": row["id"]},
                                      {"drug_count_direct": count, "drug_count_total": count})
                         results["areas_updated"] += 1
@@ -1849,7 +1850,7 @@ def phase_d9_target_pair_whitespace_refresh() -> Dict:
                 and (d.get("stage") or "").lower() in ("phase 2", "phase ii", "phase2", "phase 2/3", "phase 2a", "phase 2b")
             )
 
-            if not DRY_RUN:
+            if not runtime.DRY_RUN:
                 try:
                     sb_patch("target_pair_whitespace", {"id": row["id"]}, {
                         "competing_bispecifics_phase1": p1_count,
@@ -1878,7 +1879,7 @@ def phase_d10_indication_priority_refresh() -> Dict:
         log("  seed_indication_priorities.py not importable — skipping", indent=2)
         return {"skipped": "module_missing"}
 
-    if DRY_RUN:
+    if runtime.DRY_RUN:
         log("  [DRY-RUN] Would run seed_indication_priorities.main()", indent=2)
         return {"dry_run": True}
 
@@ -1946,7 +1947,7 @@ def phase_d11_asset_value_predictions_refresh() -> Dict:
             if new_composite is None:
                 continue
 
-            if not DRY_RUN:
+            if not runtime.DRY_RUN:
                 try:
                     sb_patch("asset_value_predictions", {"id": pred["id"]}, {
                         "composite_score": new_composite,
@@ -2054,7 +2055,7 @@ def phase_e4_source_verifier() -> Dict:
         log("  source_verifier.py not found — falling back to legacy source audit", indent=2)
         return _phase_e4_legacy_audit()
     try:
-        result = mod.run(dry_run=DRY_RUN)
+        result = mod.run(dry_run=runtime.DRY_RUN)
         log(
             f"  Source verification complete: "
             f"checked={result.get('total_checked', 0)}, "
@@ -2124,7 +2125,7 @@ def phase_e5_consistency_checker() -> Dict:
         log("  consistency_checker.py not found — falling back to legacy contradiction detection", indent=2)
         return _phase_e5_legacy_contradiction()
     try:
-        result = mod.run(dry_run=DRY_RUN)
+        result = mod.run(dry_run=runtime.DRY_RUN)
         total = result.get("total_contradictions", 0)
         log(f"  Consistency check complete: {total} total contradictions found", indent=2)
         return result
@@ -2413,7 +2414,7 @@ def phase_f3_sprint_summary() -> Dict:
             },
             "run_at": NOW_ISO,
         }
-        if not DRY_RUN:
+        if not runtime.DRY_RUN:
             sb_post("weekend_sprint_log", summary_row)
         results = summary_row["result_json"]
         log(f"  Summary: {total} phases, {success} succeeded, {errors} failed, {records} records", indent=2)
@@ -2437,7 +2438,7 @@ def phase_f4_human_queue_builder() -> Dict:
         log("  human_queue_builder.py not found — falling back to legacy review queue", indent=2)
         return _phase_f4_legacy_review_queue()
     try:
-        result = mod.run(dry_run=DRY_RUN)
+        result = mod.run(dry_run=runtime.DRY_RUN)
         log(
             f"  Human queue built: "
             f"pending={result.get('total_pending', 0)}, "
@@ -2494,7 +2495,7 @@ def _phase_f4_legacy_review_queue() -> Dict:
     except Exception:
         pass
     results["items_queued"] = len(queue_items)
-    if queue_items and not DRY_RUN:
+    if queue_items and not runtime.DRY_RUN:
         try:
             if table_exists("monday_review_queue"):
                 for item in queue_items[:30]:
@@ -2715,7 +2716,7 @@ def phase_f9_bd_recommendations() -> Dict:
         return {"status": "skipped", "reason": "module_import_failed"}
 
     try:
-        results = mod.main(dry_run=DRY_RUN, top_n=20, print_top=5)
+        results = mod.main(dry_run=runtime.DRY_RUN, top_n=20, print_top=5)
         this_week = [r for r in results if r.get("call_urgency") == "this_week"]
         this_month = [r for r in results if r.get("call_urgency") == "this_month"]
         log(f"  BD Recommendations complete: {len(results)} scored", indent=2)
@@ -2743,7 +2744,7 @@ def phase_f10_navigator_lookup_refresh() -> Dict:
         log("  WARNING: build_navigator_lookup.py not found — skipping", indent=2)
         return {"status": "skipped", "reason": "script_not_found"}
 
-    if DRY_RUN:
+    if runtime.DRY_RUN:
         log("  DRY-RUN: would run build_navigator_lookup.py", indent=2)
         return {"status": "dry_run"}
 
@@ -2922,7 +2923,7 @@ def run_block(block: str, config: Dict) -> Dict:
     log(f"\n{'#'*60}")
     log(f"# BLOCK {block} — {len(phases)} phases")
     log(f"# Sprint: {SPRINT_ID}")
-    log(f"# Dry-run: {DRY_RUN}")
+    log(f"# Dry-run: {runtime.DRY_RUN}")
     log(f"{'#'*60}\n")
 
     summary = {"block": block, "phases": {}, "succeeded": 0, "failed": 0}
@@ -2948,7 +2949,7 @@ def run_block(block: str, config: Dict) -> Dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
-    global DRY_RUN, SPRINT_ID
+    global SPRINT_ID
 
     parser = argparse.ArgumentParser(
         description="Meridian Weekend Autonomous Sprint Orchestrator"
@@ -2972,13 +2973,13 @@ def main():
     )
     args = parser.parse_args()
 
-    DRY_RUN = args.dry_run
+    runtime.set_dry_run(args.dry_run)
     if args.sprint_id:
         SPRINT_ID = args.sprint_id
 
     log(f"Meridian Weekend Sprint Orchestrator")
     log(f"Sprint ID: {SPRINT_ID}")
-    log(f"Dry-run:   {DRY_RUN}")
+    log(f"Dry-run:   {runtime.DRY_RUN}")
     log(f"Supabase:  {SUPABASE_URL}")
 
     # Ensure log table exists
