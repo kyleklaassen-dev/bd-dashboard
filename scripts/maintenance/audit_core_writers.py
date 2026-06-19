@@ -52,6 +52,19 @@ _CALL = re.compile(
     "|".join(CORE) + r")['\"]"
 )
 
+# Second class of bypass the sb_* scan misses: raw REST writes through generic
+# helpers, e.g.  _req("PATCH", f"drugs?id=eq.{x}", …)  ·  rest(f"catalysts?…","PATCH")
+#                patch(f"companies?id=eq.{c}", …)      ·  requests.patch(".../drugs?…")
+# A core-table REST path that carries a query (`?`) is a targeted write/read; we
+# flag it only when a write method/helper appears within a small window.
+_REST_PATH = re.compile(r"['\"]/?(?:rest/v1/)?(" + "|".join(CORE) + r")\?")
+_WRITE_NEAR = re.compile(
+    r'"(?:PATCH|POST|PUT|DELETE)"'           # quoted HTTP method (rest/_req style)
+    r"|\b(?:patch|post|put)\s*\("            # patch(/post( helper call
+    r"|\.(?:patch|post|put|delete)\s*\("     # requests.patch( etc.
+)
+_READ_NEAR = re.compile(r'\bsb_get\b|select=|"GET"|\bget\(\s*f?["\']')  # REST reads only
+
 SCAN_DIRS = ("src", "scripts")
 # never count historical code
 SKIP_HINTS = ("/archive/", "/one_off/", "/deprecated/", "/__pycache__/")
@@ -85,17 +98,33 @@ def find_bypasses():
                 continue
             if not any(t in txt for t in CORE):   # fast skip: no core table mentioned
                 continue
+            def _allowed(table):
+                wf = CORE[table][0]
+                return wf in f.name or "database/" in rel.replace("\\", "/")
+
+            seen = set()
+            # pass 1 — sb_*/client write calls with a literal core table
             for m in _CALL.finditer(txt):
                 table = m.group(1)
-                if table not in CORE:
-                    continue
-                writer_file = CORE[table][0]
-                # the Writer itself and the shared database/ package are allowed
-                if writer_file in f.name or "database/" in rel.replace("\\", "/"):
+                if table not in CORE or _allowed(table):
                     continue
                 line = txt.count("\n", 0, m.start()) + 1
+                seen.add((table, line))
                 snippet = txt[m.start():m.start() + 60].splitlines()[0]
                 out.append((table, rel, line, snippet.strip()))
+            # pass 2 — raw REST writes (f-string path + a write method nearby)
+            for m in _REST_PATH.finditer(txt):
+                table = m.group(1)
+                if _allowed(table):
+                    continue
+                window = txt[max(0, m.start() - 120): m.start() + 80]
+                if not _WRITE_NEAR.search(window) or _READ_NEAR.search(window):
+                    continue
+                line = txt.count("\n", 0, m.start()) + 1
+                if (table, line) in seen:
+                    continue
+                snippet = txt[m.start():m.start() + 60].splitlines()[0]
+                out.append((table, rel, line, "REST: " + snippet.strip()))
     return out
 
 

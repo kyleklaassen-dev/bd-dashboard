@@ -18,6 +18,7 @@ from __future__ import annotations
 
 _dw = None
 _cw = None
+_kw = None
 
 
 def update_drug(drug_id, fields) -> bool:
@@ -37,4 +38,14 @@ def update_company(company_id, fields) -> bool:
         from .company_writer import CompanyWriter
         _cw = CompanyWriter()
     report = _cw.update_fields(company_id, fields)
+    return not report.get("errors")
+
+
+def update_catalyst(catalyst_id, fields) -> bool:
+    """Governed field update of an existing catalyst via CatalystWriter."""
+    global _kw
+    if _kw is None:
+        from .catalyst_writer import CatalystWriter
+        _kw = CatalystWriter()
+    report = _kw.update_fields(catalyst_id, fields)
     return not report.get("errors")

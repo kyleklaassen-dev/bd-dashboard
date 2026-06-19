@@ -276,15 +276,13 @@ def update_company_scores(companies, scores, dry_run=False):
         score, rationale = scores.get(cid, (0, "not computed"))
         if dry_run:
             continue
-        patch(
-            f"companies?id=eq.{cid}",
-            {
-                "strategic_value_score": score,
-                "strategic_value_rationale": rationale,
-                "strategic_value_updated_at": datetime.utcnow().isoformat(),
-                # strategic_value_run_id is UUID type — omit free-text run ID
-            }
-        )
+        from meridian.database import update_company
+        update_company(cid, {
+            "strategic_value_score": score,
+            "strategic_value_rationale": rationale,
+            "strategic_value_updated_at": datetime.utcnow().isoformat(),
+            # strategic_value_run_id is UUID type — omit free-text run ID
+        })
         updated += 1
     if not dry_run:
         print(f"  Updated {updated} companies")

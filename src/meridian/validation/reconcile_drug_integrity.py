@@ -273,8 +273,9 @@ def log_and_apply(drug, changes, min_conf, apply):
     # ---- STEP 2: apply the edit (single PATCH). Compensate audit on failure.
     if updates:
         updates["updated_at"] = now
-        res = _req("PATCH", f"drugs?id=eq.{drug_id}", updates, prefer="return=minimal")
-        if res is None:
+        from meridian.database import update_drug
+        ok = update_drug(drug_id, updates)
+        if not ok:
             print("  ! drugs PATCH failed — rolling back audit rows to stay consistent.")
             for aid in audit_ids:
                 _req("DELETE", f"field_change_audit?id=eq.{aid}")
