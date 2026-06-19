@@ -657,7 +657,8 @@ def enrich_never_touched_drugs(limit: int = 10, dry_run: bool = False) -> int:
             updated += 1
             continue
 
-        ok = sb_patch("drugs", {"id": f"eq.{did}"}, update)
+        from meridian.database import update_drug
+        ok = update_drug(did, update)
         if ok:
             log(f"    Updated {dname}: {filled}", indent=2)
             # Mark the research_queue item resolved if one exists

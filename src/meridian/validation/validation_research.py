@@ -349,13 +349,12 @@ def resolve_drug(drug: dict, dry_run: bool = False) -> dict:
         statuses["stage_trial_match"] = new_status
         all_vals = list(statuses.values())
         overall  = "fail" if "fail" in all_vals else ("warning" if "warning" in all_vals else "pass")
-        sb_patch("drugs",
-                 {"validation_summary": {
-                     **statuses,
-                     "overall":           overall,
-                     "last_validated_at": NOW_ISO,
-                 }},
-                 {"id": f"eq.{did}"})
+        from meridian.database import update_drug
+        update_drug(did, {"validation_summary": {
+            **statuses,
+            "overall":           overall,
+            "last_validated_at": NOW_ISO,
+        }})
 
     return result
 

@@ -859,13 +859,12 @@ def run(drug_filter: str = None, dry_run: bool = False):
                 "needs_review" if "needs_review" in all_vals else
                 "warning"      if "warning"      in all_vals else "pass"
             )
-            sb_patch("drugs",
-                     {"validation_summary": {
-                         **statuses,
-                         "overall":           overall,
-                         "last_validated_at": NOW_ISO,
-                     }},
-                     {"id": f"eq.{did}"})
+            from meridian.database import update_drug
+            update_drug(did, {"validation_summary": {
+                **statuses,
+                "overall":           overall,
+                "last_validated_at": NOW_ISO,
+            }})
 
     # ══════════════════════════════════════════════════════════════════
     # PRINT PRIORITIZED REVIEW QUEUE

@@ -835,7 +835,8 @@ def phase_b3_bd_angle_enrichment() -> Dict:
         angle = _llm_enrich(prompt, max_tokens=200)
         if angle and not DRY_RUN:
             try:
-                sb_patch("drugs", {"id": drug["id"]}, {"bd_angle": angle})
+                from meridian.database import update_drug
+                update_drug(drug["id"], {"bd_angle": angle})
                 # Log to enriched_field_log
                 try:
                     sb_post("enriched_field_log", {
@@ -901,7 +902,8 @@ def phase_b4_risk_summary_enrichment() -> Dict:
         risk = _llm_enrich(prompt, max_tokens=150)
         if risk and not DRY_RUN:
             try:
-                sb_patch("drugs", {"id": drug["id"]}, {"risk_summary": risk})
+                from meridian.database import update_drug
+                update_drug(drug["id"], {"risk_summary": risk})
                 results["succeeded"] += 1
                 log(f"  {drug.get('name')}: risk_summary written", indent=2)
             except Exception as e:
@@ -1000,7 +1002,8 @@ def phase_b6_clinical_details() -> Dict:
                     if v and v != "UNKNOWN":
                         update[f] = v
                 if update and not DRY_RUN:
-                    sb_patch("drugs", {"id": drug["id"]}, update)
+                    from meridian.database import update_drug
+                    update_drug(drug["id"], update)
                     results["succeeded"] += 1
                     log(f"  {drug.get('name')}: updated {list(update.keys())}", indent=2)
                 elif update and DRY_RUN:
@@ -1394,8 +1397,8 @@ def phase_d1_strategic_value_scoring() -> Dict:
 
             if svs > 0 and not DRY_RUN:
                 try:
-                    sb_patch("companies", {"id": co["id"]},
-                             {"strategic_value_score": svs})
+                    from meridian.database import update_company
+                    update_company(co["id"], {"strategic_value_score": svs})
                     results["companies_scored"] += 1
                 except Exception:
                     pass

@@ -126,7 +126,8 @@ def promote_discovery_queue(dry_run=False):
         existing = sb_get("drugs", {"id": f"eq.{drug_id}", "select": "id,company_id", "limit": "1"})
         if existing:
             if company_id and not existing[0].get("company_id") and not dry_run:
-                sb_patch("drugs", {"id": f"eq.{drug_id}"}, {"company_id": company_id})
+                from meridian.database import update_drug
+                update_drug(drug_id, {"company_id": company_id})
             if not dry_run:
                 _write_source(drug_id, name, item)
                 sb_patch("discovery_queue", {"id": f"eq.{item['id']}"}, {"created_drug_id": drug_id})
