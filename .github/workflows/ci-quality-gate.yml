@@ -33,6 +33,8 @@ jobs:
         run: python scripts/maintenance/check_import_clean.py
       - name: Pure-function characterization tests
         run: python tests/unit/test_pure_functions.py
+      - name: Entity-matcher pure characterization tests
+        run: PYTHONPATH=src python tests/unit/test_entity_matcher_pure.py
       - name: Structural health — fail on any import cycle
         run: PYTHONPATH=src python scripts/maintenance/meridian_health_metrics.py --ci
       - name: Repo hygiene — fail on broken workflow→path references
