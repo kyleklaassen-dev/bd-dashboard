@@ -8,7 +8,13 @@
 (function () {
   // program_code → the asset tab's differentiator-grid element id (set in index.html).
   const DIFF_GRID_BY_PROGRAM = {
-    'ALX001': 'asset-diff-tl1a',
+    'ALX001':          'asset-diff-tl1a',
+    'ALX-TSLP-IL33':   'asset-diff-tslp',
+    'ALX-IL4RA-TSLP':  'asset-diff-il4ra-tslp',
+    'ALX-IL4RA-OX40L': 'asset-diff-il4ra-ox40l',
+    'ALX-IGF1R-TSHR':  'asset-diff-igf1r-tshr',
+    'ALX005':          'asset-diff-fcrn',
+    'ALX002':          'asset-diff-ace',
   };
 
   function esc(s) {
