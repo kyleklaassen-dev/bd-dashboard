@@ -464,14 +464,14 @@ AFTER EVERY INDEX.HTML DEPLOY
    <button class="nav-icon-btn" id="nav-icon-insights" onclick="navTo('industry-insights')" title="Industry Insights">💡</button>
    <button class="nav-icon-btn" id="nav-icon-meridian" onclick="navTo('meridian-issue')" title="Today's Issue — The Meridian">📰</button>
    <button class="nav-icon-btn" id="nav-icon-predictions" onclick="navTo('predictions')" title="Predictions — Meridian's track record, every falsifiable call scored against ground truth">📈</button>
-   <!-- DEPRECATED 2026-06-06: Pharma Landscape (🏛️), Activity Feed (🔄), and Saved Views (🔖) entry points removed per Kyle. Panes/JS retained but unreachable for the deprecation window. -->
-  <button class="nav-icon-btn" id="nav-icon-queue" onclick="navTo('discovery-queue')" title="Discovery Queue · all items needing review">🔍</button>
-   <!-- 2026-06-19 (rec #9): Home Preview promoted to the default Home (🏠) — standalone ✨ entry removed. -->
-  <button class="nav-icon-btn" id="nav-icon-si" onclick="switchTabTo('submitted-intel')" title="Submitted Intel Review">📥</button>
+   <!-- DEPRECATED 2026-06-06: Pharma Landscape (🏛️), Activity Feed (🔄), and Saved Views (🔖) entry points removed per Kyle. -->
+   <!-- 2026-06-19 (rec #8/#9): Discovery Queue (🔍) + Submitted Intel (📥) moved into the ⚙ Admin hub; ✨ Home Preview promoted to 🏠. -->
   <!-- Reads — short interpretive takes from research (research_reads). Added 2026-06-10. -->
   <button class="nav-icon-btn" id="nav-icon-reads" onclick="navTo('reads')" title="Reads — short interpretive takes from research" style="position:relative;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#5b2da8;color:#fff;border-color:#5b2da8;letter-spacing:.2px;">📑 Reads<span id="reads-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 2px #fff">0</span></button>
   <!-- Intelligence — surfaces previously-hidden backend tables (genetics, trial-design quality, conference signals, EU approvals, manufacturing, strategic insights, narrative trust). Added 2026-06-15. -->
   <button class="nav-icon-btn" id="nav-icon-intel2" onclick="navTo('intel2')" title="Intelligence — hidden backend signals: genetic validation, trial-design quality, conference late-breakers, EU approvals, manufacturing/supply candidates, strategic insights, narrative trust" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#0b5e52;color:#fff;border-color:#0b5e52;letter-spacing:.2px;">📡 Intelligence &amp; Coverage</button>
+   <!-- ⚙ Admin hub — internal data-ops / governance tools (2026-06-19, rec #8). De-emphasized; not an exec surface. -->
+   <button class="nav-icon-btn" id="nav-icon-admin" onclick="navTo('admin')" title="Admin & Data-Ops — Discovery Queue, Submitted Intel, Program Board, Ontology Audit/Explorer, Platform Audit" style="opacity:.72;">⚙</button>
  </div>
  <!-- Hidden buttons kept for JS switchTab/switchTabTo compatibility -->
  <button class="tab-btn home-tab active" onclick="switchTab('home',this)" style="display:none">Home</button>
@@ -756,7 +756,7 @@ AFTER EVERY INDEX.HTML DEPLOY
  <!-- hidden identity-health body (data still loads; displayed in footer) -->
  <div id="ih-body" style="display:none"></div>
 
- <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. Last <span onclick="switchTabTo('program-board')" style="cursor:default;user-select:none;">updated</span> May 2026.</div>
+ <div class="footnote" style="margin-top:8px;text-align:center">The Meridian is an internal BD intelligence platform. Data sourced from public clinical trial registries, press releases, and conference presentations. For internal use only. <a onclick="navTo('admin');return false;" href="#" style="color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted currentColor">Admin &amp; data-ops ⚙</a></div>
 
 </div><!-- end tab-home -->
 
@@ -2041,7 +2041,7 @@ AFTER EVERY INDEX.HTML DEPLOY
  <thead><tr><th>Drug (Brand)</th><th>Sponsor</th><th>Stage</th><th>Mechanism</th><th>Why It Matters</th></tr></thead>
  <tbody>
 <tr><td><span class="dkn-drug">Dupilumab</span><br><span style="font-size:10px;color:#8a9bb0">Dupixent</span></td><td>Sanofi / Regeneron</td><td><span class="dkn-stage-pill approved">Approved (AD, 6m+)</span></td><td><span class="dkn-mech">Anti-IL-4R&#945; IgG4 &#8212; IL-4 + IL-13 dual blockade via shared receptor</span></td><td style="font-size:11px">Gold standard in AD. Any bispecific with an IL-4R&#945; arm will be compared to dupilumab. Its Q2W dosing and TMDD-driven PK variability are addressable weaknesses for pH-engineered designs.</td></tr>
-<tr><td><span class="dkn-drug">Amlitelimab</span><br><span style="font-size:10px;color:#8a9bb0">Ebglyss</span></td><td>Sanofi</td><td><span class="dkn-stage-pill ph3">Approved (EU) / BLA filed US 2026</span></td><td><span class="dkn-mech">Anti-OX40L IgG4 &#8212; blocks OX40-OX40L costimulation, prevents Th2 memory cell survival</span></td><td style="font-size:11px">First approved OX40L antibody &#8212; Q12W SC dosing after loading. ADHERE Ph3: 47% IGA 0/1 Wk24. Validates OX40L as a critical memory T-cell target. The OX40L arm of any bispecific must match amlitelimab&#8217;s target engagement profile.</td></tr>
+<tr><td><span class="dkn-drug">Amlitelimab</span><br><span style="font-size:10px;color:#8a9bb0">KY1005 (Sanofi)</span></td><td>Sanofi</td><td><span class="dkn-stage-pill ph3">Phase 3</span></td><td><span class="dkn-mech">Anti-OX40L IgG4 &#8212; blocks OX40-OX40L costimulation, prevents Th2 memory cell survival</span></td><td style="font-size:11px">Lead OX40L antibody in AD (Phase 3 COAST/AURORA program) &#8212; Q12W SC dosing after loading. ADHERE Ph2b: 47% IGA 0/1 Wk24. Validates OX40L as a critical memory T-cell target. The OX40L arm of any bispecific must match amlitelimab&#8217;s target engagement profile.</td></tr>
 <tr><td><span class="dkn-drug">Rocatinlimab</span></td><td>Pfizer (ex-Kyowa Kirin $3B)</td><td><span class="dkn-stage-pill ph3">Ph3 (ORIGIN)</span></td><td><span class="dkn-mech">Anti-OX40 IgG4 (blocks OX40 receptor, not ligand)</span></td><td style="font-size:11px">Blocks OX40 receptor rather than ligand &#8212; similar downstream effect. Pfizer&#8217;s $3B acquisition is the highest-value precedent for OX40 pathway in derm. Ph3 ORIGIN readout will set the competitive bar for this mechanism.</td></tr>
 <tr><td><span class="dkn-drug">APG777</span></td><td>Apogee Biosciences</td><td><span class="dkn-stage-pill ph1">Ph1b (AD + CRSwNP)</span></td><td><span class="dkn-mech">IL-4R&#945;&#215;OX40L bispecific &#8212; VHH format for OX40L arm</span></td><td style="font-size:11px">Most direct bispecific competitor. Ph1b safety/PK data in AD and CRSwNP patients anticipated 2026. Apogee&#8217;s dual-program strategy (APG279 + APG777) de-risks the platform if one target fails.</td></tr>
 <tr><td><span class="dkn-drug">Upadacitinib</span><br><span style="font-size:10px;color:#8a9bb0">Rinvoq</span></td><td>AbbVie</td><td><span class="dkn-stage-pill approved">Approved (AD)</span></td><td><span class="dkn-mech">JAK1 inhibitor &#8212; oral, pan-cytokine signaling, highest EASI-90 in class</span></td><td style="font-size:11px">Sets the efficacy ceiling (~60% EASI-90). Black box safety label (VTE, malignancy risk) creates the opening for biologics with cleaner safety. If pH-engineered IL-4R&#945;&#215;OX40L can approach upadacitinib&#8217;s efficacy with biologic safety, it commands premium positioning.</td></tr>
@@ -2119,7 +2119,7 @@ AFTER EVERY INDEX.HTML DEPLOY
   <div class="tl1a-modal-hd"><span>🧬 Ailux Profile · IL-4Rα × OX40L Atopic Dermatitis</span>
    <button class="bio-dd-close" onclick="closeTl1aModal(document.getElementById('il4ra-ox40l-modal-ailux'))">✕</button>
   </div>
-  <div class="tl1a-modal-body"><div class="ailux-card"><div class="ailux-title">Ailux Positioning — IL-4Rα × OX40L Atopic Dermatitis</div><div class="ailux-name">Strategic Context vs. Field</div><div class="ailux-diff-grid"><div class="ailux-diff"><div class="ad-label">Mechanism</div><div class="ad-val">Memory + effector dual block</div><div class="ad-sub">OX40L drives memory T cell survival and re-sensitization; IL-4Rα drives acute Th2 effector responses. Dual blockade addresses both chronicity and acute symptoms simultaneously.</div></div><div class="ailux-diff"><div class="ad-label">Clinical Target</div><div class="ad-val">Dupilumab inadequate responders</div><div class="ad-sub">~20–30% of dupilumab patients have inadequate itch control or secondary treatment failure. OX40L blockade may address the underlying memory T cell driver that dupilumab cannot reach.</div></div><div class="ailux-diff"><div class="ad-label">Deal Comparables</div><div class="ad-val">Amlitelimab $4.5B Sanofi deal (2021)</div><div class="ad-sub">Regeneron/Sanofi paid ~$4.5B for cemiplimab+dupilumab+potential. Amlitelimab-equivalent asset in a bispecific format would attract major dermatology BD interest from AbbVie, Pfizer, Lilly, Leo Pharma.</div></div><div class="ailux-diff"><div class="ad-label">Format Advantage</div><div class="ad-val">Q4W/Q8W SC vs dupilumab Q2W</div><div class="ad-sub">Extended half-life bispecific can achieve more convenient dosing than dupilumab Q2W — the primary commercial differentiation in a market where patient compliance is a key driver.</div></div></div><div class="comp-valuation-card" style="margin-top:16px"><div class="cv-hd">Estimated Deal Value &amp; Inflection Points</div><div class="cv-grid"><div class="cv-item cv-up"><div class="cv-label">Est. Upfront (Today)</div><div class="cv-val">$30–80M</div><div class="cv-sub">Pre-clinical/pre-IND</div></div><div class="cv-item cv-bio"><div class="cv-label">Est. Total Deal</div><div class="cv-val">$700M–1.5B</div><div class="cv-sub">Upfront + milestones</div></div><div class="cv-item cv-infl"><div class="cv-label">Post–Phase 1</div><div class="cv-val">$150–400M</div><div class="cv-sub">With human PK data</div></div></div><div class="cv-inflection"><strong>Key Inflection Points:</strong> Phase 1 PK data showing extended half-life + both IL-4Rα and OX40L pathway biomarker suppression (TARC/CCL17 for IL-4Rα; OX40L expression on T cells for OX40L arm). Post-Phase 2 amlitelimab data (2025 Ph3 positive) materially increases the bispecific's value — partners now know the OX40L arm works. ZW171 IND filing would set the competitive timeline.</div></div></div></div>
+  <div class="tl1a-modal-body"><div class="ailux-card"><div class="ailux-title">Ailux Positioning — IL-4Rα × OX40L Atopic Dermatitis</div><div class="ailux-name">Strategic Context vs. Field</div><div class="ailux-diff-grid"><div class="ailux-diff"><div class="ad-label">Mechanism</div><div class="ad-val">Memory + effector dual block</div><div class="ad-sub">OX40L drives memory T cell survival and re-sensitization; IL-4Rα drives acute Th2 effector responses. Dual blockade addresses both chronicity and acute symptoms simultaneously.</div></div><div class="ailux-diff"><div class="ad-label">Clinical Target</div><div class="ad-val">Dupilumab inadequate responders</div><div class="ad-sub">~20–30% of dupilumab patients have inadequate itch control or secondary treatment failure. OX40L blockade may address the underlying memory T cell driver that dupilumab cannot reach.</div></div><div class="ailux-diff"><div class="ad-label">Deal Comparables</div><div class="ad-val">Amlitelimab via Kymab → Sanofi (2021)</div><div class="ad-sub">Sanofi acquired Kymab in 2021 (~$1.1B upfront, up to ~$1.45B with milestones); amlitelimab (KY1005) was the lead asset. An amlitelimab-equivalent in a bispecific format would attract major dermatology BD interest from AbbVie, Pfizer, Lilly, Leo Pharma.</div></div><div class="ailux-diff"><div class="ad-label">Format Advantage</div><div class="ad-val">Q4W/Q8W SC vs dupilumab Q2W</div><div class="ad-sub">Extended half-life bispecific can achieve more convenient dosing than dupilumab Q2W — the primary commercial differentiation in a market where patient compliance is a key driver.</div></div></div><div class="comp-valuation-card" style="margin-top:16px"><div class="cv-hd">Estimated Deal Value &amp; Inflection Points</div><div class="cv-grid"><div class="cv-item cv-up"><div class="cv-label">Est. Upfront (Today)</div><div class="cv-val">$30–80M</div><div class="cv-sub">Pre-clinical/pre-IND</div></div><div class="cv-item cv-bio"><div class="cv-label">Est. Total Deal</div><div class="cv-val">$700M–1.5B</div><div class="cv-sub">Upfront + milestones</div></div><div class="cv-item cv-infl"><div class="cv-label">Post–Phase 1</div><div class="cv-val">$150–400M</div><div class="cv-sub">With human PK data</div></div></div><div class="cv-inflection"><strong>Key Inflection Points:</strong> Phase 1 PK data showing extended half-life + both IL-4Rα and OX40L pathway biomarker suppression (TARC/CCL17 for IL-4Rα; OX40L expression on T cells for OX40L arm). Post-Phase 2 amlitelimab data (2025 Ph3 positive) materially increases the bispecific's value — partners now know the OX40L arm works. ZW171 IND filing would set the competitive timeline.</div></div></div></div>
  </div>
 </div>
 <div class="tl1a-modal-overlay" id="il4ra-ox40l-modal-estimand" onclick="if(this===event.target)closeTl1aModal(this)">
@@ -3419,7 +3419,51 @@ function dknDismissChanges(){
 <script src="assets/js/company_database.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════════════
-     AUDIT TAB — Hidden system visibility page. Access: click "updated" in home footer.
+     ADMIN HUB (2026-06-19, rec #8) — single entry for internal data-ops /
+     governance tools, separated from the executive nav. Reached via the ⚙ icon.
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-admin" style="padding:0;background:#0f1923;min-height:100vh;font-family:'Inter',sans-serif">
+  <div style="max-width:1080px;margin:0 auto;padding:34px 24px 64px">
+    <div style="color:#9fb4cc;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase">Meridian · Internal</div>
+    <h1 style="color:#f0f6ff;font-size:24px;font-weight:900;margin:6px 0 6px">⚙ Admin &amp; Data-Ops Console</h1>
+    <p style="color:#7e96b3;font-size:13px;max-width:700px;line-height:1.5;margin:0 0 26px">Governance, data-quality, and pipeline-review tools — separated from the executive surface. These answer schema / coverage / curation questions, not BD questions.</p>
+
+    <div style="color:#7e96b3;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:0 0 10px">Pipeline review (ops)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px;margin-bottom:26px">
+      <div class="adminhub-card" onclick="switchTabTo('discovery-queue')" style="cursor:pointer;background:#16242f;border:1px solid #25394a;border-radius:12px;padding:16px 18px;transition:all .15s" onmouseover="this.style.borderColor='#3a5a78'" onmouseout="this.style.borderColor='#25394a'">
+        <div style="color:#f0f6ff;font-size:14px;font-weight:800">🔍 Discovery Queue</div>
+        <div style="color:#8aa3bd;font-size:12px;line-height:1.45;margin-top:4px">Review, approve/reject, or watch machine-discovered candidates before they enter the dashboard.</div>
+      </div>
+      <div class="adminhub-card" onclick="switchTabTo('submitted-intel')" style="cursor:pointer;background:#16242f;border:1px solid #25394a;border-radius:12px;padding:16px 18px;transition:all .15s" onmouseover="this.style.borderColor='#3a5a78'" onmouseout="this.style.borderColor='#25394a'">
+        <div style="color:#f0f6ff;font-size:14px;font-weight:800">📥 Submitted Intel</div>
+        <div style="color:#8aa3bd;font-size:12px;line-height:1.45;margin-top:4px">Triage human-submitted intel; promote to the Discovery Queue or reject.</div>
+      </div>
+    </div>
+
+    <div style="color:#7e96b3;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:0 0 10px">Governance &amp; data quality</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px">
+      <div class="adminhub-card" onclick="switchTabTo('program-board')" style="cursor:pointer;background:#16242f;border:1px solid #25394a;border-radius:12px;padding:16px 18px;transition:all .15s" onmouseover="this.style.borderColor='#3a5a78'" onmouseout="this.style.borderColor='#25394a'">
+        <div style="color:#f0f6ff;font-size:14px;font-weight:800">🗂 Program Board</div>
+        <div style="color:#8aa3bd;font-size:12px;line-height:1.45;margin-top:4px">Platform build status (5-track model) + the live Indication Landscape Card.</div>
+      </div>
+      <div class="adminhub-card" onclick="switchTabTo('ontology')" style="cursor:pointer;background:#16242f;border:1px solid #25394a;border-radius:12px;padding:16px 18px;transition:all .15s" onmouseover="this.style.borderColor='#3a5a78'" onmouseout="this.style.borderColor='#25394a'">
+        <div style="color:#f0f6ff;font-size:14px;font-weight:800">🔗 Ontology Audit</div>
+        <div style="color:#8aa3bd;font-size:12px;line-height:1.45;margin-top:4px">Governance violations, relationship coverage, ontology health, migration roadmap.</div>
+      </div>
+      <div class="adminhub-card" onclick="switchTabTo('ontology-explorer')" style="cursor:pointer;background:#16242f;border:1px solid #25394a;border-radius:12px;padding:16px 18px;transition:all .15s" onmouseover="this.style.borderColor='#3a5a78'" onmouseout="this.style.borderColor='#25394a'">
+        <div style="color:#f0f6ff;font-size:14px;font-weight:800">🌐 Ontology Explorer <span style="font-size:9px;color:#c79a3a;border:1px solid #6b5320;border-radius:6px;padding:1px 5px;vertical-align:middle">PROTO</span></div>
+        <div style="color:#8aa3bd;font-size:12px;line-height:1.45;margin-top:4px">Interactive ontology tree, relationship matrix, competitive-pressure map.</div>
+      </div>
+      <div class="adminhub-card" onclick="switchTabTo('audit')" style="cursor:pointer;background:#16242f;border:1px solid #25394a;border-radius:12px;padding:16px 18px;transition:all .15s" onmouseover="this.style.borderColor='#3a5a78'" onmouseout="this.style.borderColor='#25394a'">
+        <div style="color:#f0f6ff;font-size:14px;font-weight:800">📋 Platform Audit</div>
+        <div style="color:#8aa3bd;font-size:12px;line-height:1.45;margin-top:4px">How Meridian works under the hood: data model, pipeline trace, schema browser.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     AUDIT TAB — internal. Reached via the ⚙ Admin hub.
      ═══════════════════════════════════════════════════════════════════ -->
 <div class="tab-pane" id="tab-audit" style="padding:0;background-color:#edf0f5;background-image:radial-gradient(circle,#b8c4d4 1.2px,transparent 1.2px);background-size:26px 26px;min-height:100vh;font-family:'Inter',sans-serif">
 <link rel="stylesheet" href="assets/css/style_09.css">

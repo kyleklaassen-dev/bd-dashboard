@@ -5380,6 +5380,20 @@ function intelSubTab(view) {
   if (view === 'coverage') _lazyFrame('atlas-frame');
   if (view === 'live')     _lazyFrame('live-frame');
 }
+
+// 2026-06-19 (rec #10, interim): the per-asset "Estimated Deal Value" cards are hardcoded
+// internal estimates, not live-sourced deal comps. Until they are wired to the deal-comp
+// tables, label every card honestly so an exec never mistakes them for sourced figures.
+function labelValuationEstimates() {
+  document.querySelectorAll('.comp-valuation-card').forEach(card => {
+    if (card.querySelector('.cv-disclaimer')) return;
+    const note = document.createElement('div');
+    note.className = 'cv-disclaimer';
+    note.style.cssText = 'font-size:10px;color:#94a3b8;font-style:italic;margin-top:8px;line-height:1.35;';
+    note.textContent = 'Illustrative internal estimate — not a live-sourced deal comp. Figures are directional pending wiring to the deal-comparables data.';
+    card.appendChild(note);
+  });
+}
 registerTab('meridian-issue', {
   onEnter() {
     loadMeridianIssue();
@@ -11872,7 +11886,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
   document.addEventListener('DOMContentLoaded', () => { window.mlInit && window.mlInit(); });
 })();
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); labelValuationEstimates(); });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
@@ -13493,10 +13507,17 @@ const NAV_ICON_MAP = {
   'tl1a': 'mol-dd-btn', 'tslp': 'mol-dd-btn', 'il4ra-tslp': 'mol-dd-btn',
   'il4ra-ox40l': 'mol-dd-btn', 'igf1r-tshr': 'mol-dd-btn',
   'fcrn': 'mol-dd-btn', 'ace': 'mol-dd-btn',
-  'discovery-queue': 'nav-icon-queue',
   'homeprev': 'nav-icon-home',  /* 2026-06-19 (rec #9): Home Preview is now the default Home (🏠). */
   /* 2026-06-19 (rec #5): 'live' + 'atlas' consolidated into intel2 sub-views. */
   'intel2': 'nav-icon-intel2',
+  /* 2026-06-19 (rec #8): admin/ops cluster lives behind the ⚙ Admin hub — all map to its icon. */
+  'admin': 'nav-icon-admin',
+  'discovery-queue': 'nav-icon-admin',
+  'submitted-intel': 'nav-icon-admin',
+  'program-board': 'nav-icon-admin',
+  'ontology': 'nav-icon-admin',
+  'ontology-explorer': 'nav-icon-admin',
+  'audit': 'nav-icon-admin',
   /* DEPRECATED 2026-06-06: 'changes-feed': 'nav-icon-changes' (Activity Feed retired) */
 };
 function updateNavIconActive(tabId) {
