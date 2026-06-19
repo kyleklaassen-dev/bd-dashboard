@@ -252,21 +252,6 @@ def sb_upsert(table: str, records: list | dict,
         return False
 
 
-def sb_patch(table: str, record: dict, match_params: dict) -> bool:
-    try:
-        r = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=SB_HEADERS,
-            params=match_params,
-            json=record,
-            timeout=20,
-        )
-        return r.status_code in (200, 204)
-    except Exception as e:
-        log(f"[sb_patch {table}] {e}")
-        return False
-
-
 def log(msg: str, indent: int = 0):
     ts     = datetime.datetime.utcnow().strftime("%H:%M:%S")
     prefix = "  " * indent
