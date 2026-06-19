@@ -84,7 +84,7 @@ def gap_unverified_relationships() -> Dict:
 
     try:
         unverified = sb_get("entity_relationships", {
-            "select": "id,entity_id_a,entity_id_b,relationship_type",
+            "select": "id,source_id,target_id,relationship_type",
             "verification_needed": "eq.true",
             "limit": "100",
         })
@@ -98,9 +98,9 @@ def gap_unverified_relationships() -> Dict:
                 gap_type="unverified_relationship",
                 priority=PRIORITY_P2,
                 reason=(
-                    f"Relationship {rel.get('entity_id_a')} "
+                    f"Relationship {rel.get('source_id')} "
                     f"—[{rel.get('relationship_type')}]→ "
-                    f"{rel.get('entity_id_b')} needs human verification"
+                    f"{rel.get('target_id')} needs human verification"
                 ),
             )
             results["queued"] += 1

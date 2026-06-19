@@ -18,9 +18,9 @@ def gap_low_coverage_score() -> Dict:
     try:
         low_drugs = sb_get("coverage_scores", {
             "entity_type": "eq.drug",
-            "coverage_score": "lt.40",
-            "select": "entity_id,coverage_score",
-            "order": "coverage_score.asc",
+            "overall_score": "lt.40",
+            "select": "entity_id,overall_score",
+            "order": "overall_score.asc",
             "limit": "100",
         })
         results["found"] = len(low_drugs)
@@ -43,7 +43,7 @@ def gap_low_coverage_score() -> Dict:
 
         for score_row in low_drugs:
             eid = score_row["entity_id"]
-            score = score_row.get("coverage_score", 0)
+            score = score_row.get("overall_score", 0)
             drug = drugs_meta.get(eid, {})
             overlap = drug.get("overlap") or "unknown"
             stage = drug.get("stage") or "unknown"
@@ -202,12 +202,12 @@ def gap_missing_catalyst_entries() -> Dict:
 
         # Catalyst entries
         cats = sb_get("catalyst_calendar", {
-            "select": "catalyst_drug_id,drug_id",
+            "select": "drug_id",
             "limit": "500",
         })
         covered_ids: Set[str] = set()
         for cat in cats:
-            for field in ["catalyst_drug_id", "drug_id"]:
+            for field in ["drug_id"]:
                 val = cat.get(field)
                 if val:
                     covered_ids.add(str(val))

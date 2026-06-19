@@ -109,7 +109,7 @@ def load_data():
     drug_areas = sb_get("drug_areas?select=drug_id,area_id")
     print(f"  drug_areas: {len(drug_areas)}")
 
-    drug_targets = sb_get("drug_targets?role=eq.primary&select=drug_id,target_id")
+    drug_targets = sb_get("drug_targets?target_role=eq.primary&select=drug_id,target_id")
     print(f"  drug_targets (primary): {len(drug_targets)}")
 
     drug_area_scores = sb_get("drug_area_scores?select=drug_id,area_id,confidence_level,source_url,overlap")
