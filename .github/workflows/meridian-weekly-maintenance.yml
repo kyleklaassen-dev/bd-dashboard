@@ -1,0 +1,75 @@
+name: Meridian Weekly Maintenance (QA + derived refresh + enrichment)
+
+# Replaces the retired weekend_sprint + school-week-sprint orchestrators. Runs ONLY
+# the phases that had no other home (the 47 redundant/obsolete sprint phases were
+# dropped — each was already covered by a dedicated workflow). See
+# docs/ROADMAP_NEXT_10_PHASES.md for the full audit.
+
+on:
+  schedule:
+    - cron: "0 2 * * 6"     # Saturdays 02:00 UTC (the old weekend-sprint slot)
+  workflow_dispatch:
+
+permissions:
+  contents: write            # to commit data/navigator_lookup.json
+
+concurrency:
+  group: meridian-weekly-maintenance
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r scripts/requirements.txt
+      - name: Provision service key
+        run: printf '%s' "${{ secrets.SUPABASE_SERVICE_KEY }}" > .supabase_service_key
+
+      # ── QA / queue (formerly weekend_sprint E5 / A6 / F4) ──
+      - name: Consistency checker (contradictions → agent_disagreements)
+        run: python3 scripts/consistency_checker.py || echo "consistency non-fatal"
+      - name: Coverage gap finder (gaps → research_queue)
+        run: python3 scripts/coverage_gap_finder.py || echo "coverage-gap non-fatal"
+      - name: Human review queue builder (review_queue_position)
+        run: python3 scripts/human_queue_builder.py || echo "human-queue non-fatal"
+
+      # ── Derived-table refreshers (formerly weekend_sprint D6 / D9) ──
+      - name: Area knowledge counts refresh
+        run: python3 scripts/update_area_knowledge_counts.py || echo "area-knowledge non-fatal"
+      - name: Target-pair whitespace refresh
+        run: python3 scripts/refresh_target_pair_whitespace.py || echo "whitespace non-fatal"
+
+      # ── Frontend data artifact (formerly weekend_sprint F10) ──
+      # Rebuild + commit the file directly (the old --deploy path used the dead
+      # .github_token; this uses the Actions token via permissions: contents: write).
+      - name: Rebuild navigator_lookup.json
+        run: python3 scripts/build_navigator_lookup.py || echo "navigator non-fatal"
+      - name: Commit navigator_lookup.json if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/navigator_lookup.json
+          git diff --cached --quiet || git commit -m "build: refresh navigator_lookup.json (weekly maintenance)"
+          git push || echo "push non-fatal"
+
+      # NOTE: school-week-sprint also called molecule_enrichment.py / drug_intelligence_researcher.py
+      # with a `--area` flag NEITHER script accepts, so those steps errored every run
+      # (continue-on-error masked it) — i.e. they were never actually enriching. They are
+      # therefore NOT carried over here. Those two scripts are dormant capabilities; schedule
+      # them properly (molecule_enrichment --priority; drug_intelligence_researcher --drug-id/...)
+      # in a dedicated enrichment workflow if/when wanted.
+
+      - name: Clean up
+        if: always()
+        run: rm -f .supabase_service_key
