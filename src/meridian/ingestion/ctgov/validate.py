@@ -287,15 +287,14 @@ def run_field_validation(dry_run: bool = False) -> dict:
                     "updated_at":   NOW_ISO,
                 })
             # Update validation_summary on drug row (fast dashboard display)
-            sb_patch("drugs",
-                     {"validation_summary": {
-                         "overall":            overall,
-                         "brand_name":         bn_status,
-                         "field_consistency":  fc_status,
-                         "stage_trial_match":  st_status,
-                         "last_validated_at":  NOW_ISO,
-                     }},
-                     {"id": f"eq.{did}"})
+            from meridian.database import update_drug
+            update_drug(did, {"validation_summary": {
+                "overall":            overall,
+                "brand_name":         bn_status,
+                "field_consistency":  fc_status,
+                "stage_trial_match":  st_status,
+                "last_validated_at":  NOW_ISO,
+            }})
 
     # ── Validate trials.study_acronym vs trial_name ──────────────────────
     r2 = sb_get("trials", {"select": "id,drug_id,study_acronym,trial_name"})

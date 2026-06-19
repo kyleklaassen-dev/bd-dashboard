@@ -58,18 +58,14 @@ SKIP_HINTS = ("/archive/", "/one_off/", "/deprecated/", "/__pycache__/")
 
 # ── BASELINE: known pre-existing bypasses (debt). New bypasses must NOT land in
 #    any file outside this set. Shrink this list as sites are migrated. ─────────
+#
+# 2026-06-18: all 17 real field-update bypasses (16 drugs, 1 companies) were
+# migrated onto update_drug() / update_company() (meridian.database). The single
+# remaining match is a FALSE POSITIVE — the `sb_upsert('catalysts', ...)` text in
+# the docstring of `_catalyst_upsert`, which is itself the sanctioned CatalystWriter
+# drop-in. Real direct-write debt is now ZERO.
 BASELINE_FILES = {
-    "scripts/drug_enrichment.py",
-    "scripts/weekend_sprint.py",
-    "src/meridian/enrichment/company/assessment.py",
-    "src/meridian/enrichment/company/common.py",
-    "src/meridian/enrichment/company_enrichment.py",
-    "src/meridian/identity/process_queue_item.py",
-    "src/meridian/ingestion/ct_gov_sync.py",
-    "src/meridian/ingestion/ctgov/validate.py",
-    "src/meridian/products/execute_intel_actions.py",
-    "src/meridian/validation/conflict_detector.py",
-    "src/meridian/validation/validation_research.py",
+    "src/meridian/enrichment/company/common.py",  # docstring of _catalyst_upsert (not a real write)
 }
 
 

@@ -676,7 +676,8 @@ def enrich_drug(drug_id: str, dry_run: bool = False) -> bool:
                 if run_id:
                     write_payload["last_enrichment_run_id"] = run_id
 
-                sb_patch("drugs", {"id": drug_id}, write_payload)
+                from meridian.database import update_drug
+                update_drug(drug_id, write_payload)
                 log(f"  Drug {drug_name}: patched {len(update)} fields", indent=2)
 
                 # Log each field change with full provenance

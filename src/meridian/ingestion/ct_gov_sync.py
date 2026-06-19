@@ -407,9 +407,8 @@ def step3c_update_drug_stage(drug_id: str, synced_nct_ids: list[str],
     if dry_run:
         log(f"  [DRY RUN] Would update {drug_id}.stage: {current_stage!r} → {best_phase!r}", indent=2)
     else:
-        ok = sb_patch("drugs",
-                      {"stage": best_phase, "last_synced_date": NOW_ISO},
-                      {"id": f"eq.{drug_id}"})
+        from meridian.database import update_drug
+        ok = update_drug(drug_id, {"stage": best_phase, "last_synced_date": NOW_ISO})
         if ok:
             log(f"  ↑ Stage updated: {drug_id} {current_stage!r} → {best_phase!r}", indent=2)
 
@@ -470,18 +469,16 @@ def sync_drug(drug: dict, dry_run: bool = False, resolver=None,
     if drug_id in APPROVED_DRUGS:
         log(f"  ⊘ {drug_id}: approved product — marking trial_data_status='populated'", indent=1)
         if not dry_run:
-            sb_patch("drugs",
-                     {"trial_data_status": "populated", "last_synced_date": NOW_ISO},
-                     {"id": f"eq.{drug_id}"})
+            from meridian.database import update_drug
+            update_drug(drug_id, {"trial_data_status": "populated", "last_synced_date": NOW_ISO})
         return {"synced": [], "status": "approved"}
 
     # ── Pre-IND drugs: no trial expected yet ─────────────────────────────
     if drug_id in PENDING_TRIAL_DRUGS:
         log(f"  ⏳ {drug_id}: pre-IND — marking trial_data_status='pending'", indent=1)
         if not dry_run:
-            sb_patch("drugs",
-                     {"trial_data_status": "pending", "last_synced_date": NOW_ISO},
-                     {"id": f"eq.{drug_id}"})
+            from meridian.database import update_drug
+            update_drug(drug_id, {"trial_data_status": "pending", "last_synced_date": NOW_ISO})
         return {"synced": [], "status": "pending"}
 
     # ── Collect known NCT IDs ─────────────────────────────────────────────
@@ -522,9 +519,8 @@ def sync_drug(drug: dict, dry_run: bool = False, resolver=None,
     # ── Update trial_data_status ─────────────────────────────────────────
     trial_status = "populated" if all_synced else "missing"
     if not dry_run:
-        sb_patch("drugs",
-                 {"trial_data_status": trial_status, "last_synced_date": NOW_ISO},
-                 {"id": f"eq.{drug_id}"})
+        from meridian.database import update_drug
+        update_drug(drug_id, {"trial_data_status": trial_status, "last_synced_date": NOW_ISO})
 
     # ── Update trial_registries.ct_gov row for this drug ─────────────────
     update_trial_registries(drug_id, all_synced, dry_run=dry_run)

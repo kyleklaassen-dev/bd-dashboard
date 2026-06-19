@@ -283,7 +283,8 @@ def handle_ctgov(item: dict) -> list:
             if phases:
                 bp = best_phase(phases)
                 if bp and drug.get("stage") in ("Preclinical", "preclinical", None, ""):
-                    ok = sb_patch("drugs", {"id": f"eq.{did}"}, {"stage": bp})
+                    from meridian.database import update_drug
+                    ok = update_drug(did, {"stage": bp})
                     if ok:
                         actions.append(f"Stage advanced to {bp} from CT.gov evidence")
     else:
@@ -404,7 +405,8 @@ def handle_drug_enrichment(item: dict) -> list:
         update["last_synced_date"] = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 
         if update:
-            ok = sb_patch("drugs", {"id": f"eq.{did}"}, update)
+            from meridian.database import update_drug
+            ok = update_drug(did, update)
             if ok:
                 filled = [k for k in update if k != "last_synced_date"]
                 log(f"Updated {dname}: {filled}")

@@ -277,7 +277,8 @@ def write_step5(company_id: str, area_id: str, data: dict, ctx: dict, dry_run: b
                 update_fields["last_enrichment_run_id"] = enrichment_run_id
                 update_fields["enriched_by"]  = "claude-sonnet-4-6"
                 update_fields["enriched_at"]  = NOW_ISO
-            ok = sb_patch("drugs", update_fields, {"id": f"eq.{drug_id}"})
+            from meridian.database import update_drug
+            ok = update_drug(drug_id, update_fields)
             role = update_fields.get("strategic_role", "")
             summary_preview = (update_fields.get("drug_summary") or "")[:60]
             log(f"  drug {drug_id} [{role}]: {'✓' if ok else '✗'} | summary: {summary_preview!r}", indent=1)
