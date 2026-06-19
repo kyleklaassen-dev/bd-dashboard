@@ -3,7 +3,7 @@
 stage-vs-trials, brand-without-approval, company_id originator, duplicate entities."""
 import difflib
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, List
 
 from consistency_base import (
     sb_get, table_exists, log, stage_rank, normalize_stage,
@@ -11,21 +11,25 @@ from consistency_base import (
 )
 
 
-# ── Check 1: Drug stage vs trial_registries ───────────────────────────────────
+# ── Check 1: Drug stage vs trials ─────────────────────────────────────────────
 
 def check_stage_vs_trials() -> Dict:
-    log("Check 1: Drug stage vs trial_registries phase", indent=1)
+    log("Check 1: Drug stage vs trials phase", indent=1)
     results = {"checked": 0, "contradictions": 0}
 
-    if not table_exists("trial_registries"):
-        log("  trial_registries not found — skipping", indent=2)
+    # NOTE: phase data lives in the `trials` table (id, drug_id, phase, status).
+    # `trial_registries` is a registry-search tracker with no phase column —
+    # querying it returned HTTP 400, silently disabling this check.
+    if not table_exists("trials"):
+        log("  trials not found — skipping", indent=2)
         return {"skipped": "table_missing"}
 
     try:
-        # Load trial registry data with drug_id and phase
-        reg_rows = sb_get("trial_registries", {
+        # Load per-trial data with drug_id and phase (681 rows as of 2026-06;
+        # limit covers the full table to avoid silently checking a subset).
+        reg_rows = sb_get("trials", {
             "select": "id,drug_id,phase,status",
-            "limit": "500",
+            "limit": "1000",
         })
         # Index: drug_id → [phases]
         trial_phases: Dict[str, List[str]] = defaultdict(list)
