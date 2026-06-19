@@ -10,6 +10,7 @@
 | `scripts/compute_strategic_value.py` | 581→452 | `strategic_value_scoring.py` (pure) | #44 |
 | `scripts/seed_targets.py` | 791→408 | `seed_targets_data.py` (pure data) | #45 |
 | `scripts/seed_competes_with.py` | 692→394 | `competes_targets.py` + `competes_edges.py` | #47 |
+| `scripts/compute_landscape_coverage.py` | 543→262 | `landscape_coverage_base.py` + `landscape_coverage_metrics.py` | #49 |
 
 Method proven headless: byte-identical relocation → `py_compile` + `check_undefined_names`
 + **runtime functional smoke** (catches missing stdlib imports the static check misses —
@@ -28,9 +29,7 @@ nothing to relocate; needs *extraction* refactor, supervised), `enrichment/compa
   runtime-accessor refactor (semantic, supervised).
 - `drug_enrichment.py` (876) — clean-ish seams but **scattered**, and `enrich_drug` is called
   nightly by weekend_sprint phase B1 → PIPE-level blast radius despite SEED filing.
-- `compute_landscape_coverage.py` (543) — SAFE 3-file split available (base + metrics + inline
-  main; its `DRY_RUN` is an import-time constant, not rebound). Good next target, slightly fiddly
-  (no `main()`, inline bottom orchestration).
+- ~~`compute_landscape_coverage.py`~~ — **DONE #49** (base + metrics; verified by end-to-end `--dry-run` smoke, all writes suppressed).
 - `seed_preclinical_competitors.py` (527) — data blocks reference a **module-level live fetch**
   (`INNOVENT_ID = innovent_rows[0]...`) → not pure-data-extractable.
 - `approve_discovery.py` (506) — only ~6 lines over; cleanest seam (DB helper layer) tangles
@@ -38,7 +37,21 @@ nothing to relocate; needs *extraction* refactor, supervised), `enrichment/compa
 
 **Archive files (`scripts/archive/*`, 5 files >500) are OUT OF SCOPE** per CLAUDE.md (historical).
 
-Count: 34 real targets (excl. archive) at session start → **30 remaining** after this push.
+Count: 34 real targets (excl. archive) at session start → **29 remaining** after this push (6 splits merged).
+
+### What's left, and why it's NOT unattended-safe
+The cleanly auto-splittable SEED/LIB files are now **exhausted**. Every remaining file needs a
+human gate by its own nature:
+- **DRY_RUN-global trio** (`consistency_checker`, `coverage_gap_finder`, `human_queue_builder`) —
+  the runtime-accessor refactor is a *semantic* change to write-gating; a slip means dry-run writes
+  to prod. **Supervise.** (Precedent recipe exists: `scripts/weekend/runtime.py`.)
+- **PIPE tier (19)** — each on a cron; the triage gate requires **Kyle dry-runs the entrypoint
+  before merge**. Start safest: `compute_attribute_completeness`, `score_foresight`.
+- **DASH tier (9)** — global-scope `<script>` files; must be **browser-verified** against live data.
+- **Marginal/tangled** (`approve_discovery`, `drug_enrichment`, `seed_preclinical`) — see reasons above.
+
+Recommended resume order when supervised: PIPE safest-two (dry-run gated) → DRY_RUN trio (accessor
+refactor) → DASH (externalize `index.html` inline JS first, then `app.js` per `STATUS_AND_GAPS §4`).
 
 ---
 
