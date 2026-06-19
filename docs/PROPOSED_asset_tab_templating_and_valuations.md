@@ -31,8 +31,8 @@ Reuse existing tables where they already hold the data; add narrowly-scoped tabl
 - `payer_tpp_criteria` → payer/TPP hurdle.
 - `entity_narratives` (+ `narrative_provenance`, `narrative_claim_triangulation`) → cited prose for differentiators / biology / history / SoC. *(already powers Home Preview.)*
 
-**Proposed new (only for content with no current home):**
-1. `asset_programs` — one row per Ailux program. Cols: `program_code` (ALX001…), `target_pair`, `indication_lead`, `modality`, `differentiators jsonb` (label/value/sub triples), `format_advantage text`, `clinical_target text`, `status`, `updated_at`. Source: migrated from the current hardcoded `ailux-card` blocks.
+**Proposed new (only for content with no current home):** — schema drafted in `migrations/PROPOSED_asset_templating.sql` (CREATE TABLE only, **not applied**).
+1. `asset_programs` — one row per Ailux program, **anchored to the existing `target_pairs` table** (`target_pair_id` → `target_pairs.id`; the 7 programs = `target_pairs WHERE ailux_pair`). Cols: `program_code` (ALX001…), `target_pair_id`, `indication_lead`, `modality`, `status`, `clinical_target`, `format_advantage`, `differentiators jsonb` (label/value/sub triples), `source_url`, `updated_at`. Source: migrated from the current hardcoded `ailux-card` blocks.
 2. `competitor_molecules_supplemental` *(optional)* — only if the China-molecule cards carry facts not already in `drugs`. Prefer folding these into `drugs` with a `region`/`origin` flag rather than a new table.
 
 **Renderer:** one `renderAssetTab(targetKey)` in a new `assets/js/asset_tab.js` that hydrates a single template from the above. Retire the per-tab hardcoded panes once parity is verified tab-by-tab (deprecate, don't bulk-delete).
@@ -62,3 +62,9 @@ When live: delete `labelValuationEstimates()` (the interim disclaimer) and repla
 - Does `entity_narratives` already cover the biology/history/SoC prose for all 7 targets, or only the home-preview indications? (audit before relying on it.)
 - China-molecule cards: fold into `drugs` (preferred) vs. a supplemental table — needs a data check.
 - Valuation bands are judgment calls; the model must show its comp set so the number is defensible, not a black box.
+- **Sourcing is the gating constraint, not the schema.** The current hardcoded asset/valuation content has **no source rows**. The constitution forbids fabricating URLs, so step 3 (backfill) cannot be auto-generated — each `asset_programs`/`deal_comparables` row needs a real source found and attached. This is curation work, and is why this half was split out: the *schema* is cheap; the *sourced data* is the real effort.
+
+## Status / next gate
+- ✅ Table shapes approved (Kyle, 2026-06-19).
+- ✅ `migrations/PROPOSED_asset_templating.sql` authored (CREATE TABLE + RLS, **not applied**).
+- ⬜ **Next:** run the migration via the Management API (needs Supabase service creds — currently a blocker per the stabilization-plan session log) → backfill with sourced data → build `assets/js/asset_tab.js` renderer → verify TL1A at parity → roll remaining 6 → wire valuations → remove the interim `labelValuationEstimates()` disclaimer.
