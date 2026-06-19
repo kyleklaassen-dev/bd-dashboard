@@ -1,0 +1,55 @@
+name: Meridian Enrichment (low-coverage drugs + molecule intelligence)
+
+# Re-homes three enrichment capabilities orphaned when the sprints were retired
+# (school-week called molecule_enrichment / drug_intelligence_researcher with a
+# --area flag neither accepts, so they never actually ran). drug_enrichment +
+# molecule_enrichment have clean batch modes → weekly cron. drug_intelligence_researcher
+# is a single-drug deep-research tool → workflow_dispatch on demand.
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"     # Sundays 03:00 UTC (weekly; after Saturday maintenance)
+  workflow_dispatch:
+    inputs:
+      drug_id:
+        description: "Optional: deep drug-intelligence research on a single drug ID"
+        required: false
+        default: ""
+
+concurrency:
+  group: meridian-enrichment
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r scripts/requirements.txt
+      - name: Provision service key
+        run: printf '%s' "${{ secrets.SUPABASE_SERVICE_KEY }}" > .supabase_service_key
+
+      - name: Drug field enrichment (low-coverage batch)
+        run: python3 scripts/drug_enrichment.py --coverage-below 40 --limit 25 || echo "drug-enrich non-fatal"
+
+      - name: Molecule intelligence enrichment (priority list)
+        run: python3 src/meridian/enrichment/molecule_enrichment.py --priority || echo "molecule non-fatal"
+
+      # Single-drug deep research — only on manual dispatch with a drug_id input.
+      - name: Deep drug-intelligence research (on-demand)
+        if: github.event.inputs.drug_id != ''
+        run: python3 src/meridian/enrichment/drug_intelligence_researcher.py --drug-id "${{ github.event.inputs.drug_id }}" || echo "drug-intel non-fatal"
+
+      - name: Clean up
+        if: always()
+        run: rm -f .supabase_service_key
