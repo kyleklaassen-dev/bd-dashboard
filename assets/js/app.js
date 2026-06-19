@@ -5381,19 +5381,8 @@ function intelSubTab(view) {
   if (view === 'live')     _lazyFrame('live-frame');
 }
 
-// 2026-06-19 (rec #10, interim): the per-asset "Estimated Deal Value" cards are hardcoded
-// internal estimates, not live-sourced deal comps. Until they are wired to the deal-comp
-// tables, label every card honestly so an exec never mistakes them for sourced figures.
-function labelValuationEstimates() {
-  document.querySelectorAll('.comp-valuation-card').forEach(card => {
-    if (card.querySelector('.cv-disclaimer')) return;
-    const note = document.createElement('div');
-    note.className = 'cv-disclaimer';
-    note.style.cssText = 'font-size:10px;color:#94a3b8;font-style:italic;margin-top:8px;line-height:1.35;';
-    note.textContent = 'Illustrative internal estimate — not a live-sourced deal comp. Figures are directional pending wiring to the deal-comparables data.';
-    card.appendChild(note);
-  });
-}
+// 2026-06-19 (rec #10): valuation-card comps now render from deal_comparables via
+// renderValuationComps() in assets/js/asset_tab.js.
 registerTab('meridian-issue', {
   onEnter() {
     loadMeridianIssue();
@@ -11886,7 +11875,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHomePan
   document.addEventListener('DOMContentLoaded', () => { window.mlInit && window.mlInit(); });
 })();
 
-document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); labelValuationEstimates(); });
+document.addEventListener('DOMContentLoaded', () => { renderIntelSubmissions(); renderWeeklyTasks(); loadDeals(); loadCatalysts(); loadIdentityHealth(); loadIdentityFooter(); loadGovernanceViolations(); loadMeridianReader(); dknLoadSbData(); loadTopOpps(); });
 
 // ── BIOLOGY DEEP DIVE MODAL ───────────────────────────────────────
 function openBioDD(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }

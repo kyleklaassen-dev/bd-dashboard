@@ -55,6 +55,80 @@
     }
   }
 
+  // ── #10: valuation cards — sourced comparables beside the labeled estimate ──
+  // The valuation card shares an .ailux-card with the program's differentiator grid
+  // (which carries data-asset-program), so resolve the program there — robust even
+  // though several asset modals live outside their .tab-pane in the DOM.
+  const AREA_BY_PROGRAM = {
+    'ALX001': 'tl1a', 'ALX-TSLP-IL33': 'tslp', 'ALX-IL4RA-TSLP': 'il4ra',
+    'ALX-IL4RA-OX40L': 'il4ra', 'ALX-IGF1R-TSHR': 'igf1r', 'ALX005': 'fcrn', 'ALX002': 'tcell',
+  };
+
+  function areaForCard(card) {
+    const host = card.closest('.ailux-card') || card.parentElement;
+    const gridEl = host && host.querySelector('[data-asset-program]');
+    const prog = gridEl && gridEl.getAttribute('data-asset-program');
+    return prog ? AREA_BY_PROGRAM[prog] : null;
+  }
+
+  function fmtUsdM(n) {
+    if (n == null) return null;
+    return n >= 1000 ? '$' + (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'B' : '$' + n + 'M';
+  }
+
+  function compLine(c) {
+    const up = fmtUsdM(c.upfront_usd_m), tot = fmtUsdM(c.total_usd_m);
+    const money = [up && up + ' up', tot && tot + ' total'].filter(Boolean).join(' / ');
+    const yr = c.deal_year ? ' (' + c.deal_year + ')' : '';
+    const who = esc(c.acquirer || '—');
+    const link = c.source_url
+      ? ' <a href="' + esc(c.source_url) + '" target="_blank" rel="noopener" style="color:#7fb2e6;text-decoration:none">↗</a>'
+      : '';
+    return '<li style="margin:3px 0;line-height:1.35"><span style="color:#cdd9e8;font-weight:700">' + who + '</span>'
+      + (money ? ' <span style="color:#9fb4cc">' + money + '</span>' : '') + yr + link + '</li>';
+  }
+
+  function renderCompsInto(card, comps) {
+    if (card.querySelector('.cv-comps')) return;
+    const box = document.createElement('div');
+    box.className = 'cv-comps';
+    box.style.cssText = 'margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12)';
+    if (comps && comps.length) {
+      const top = comps.slice(0, 5);
+      box.innerHTML =
+        '<div style="font-size:10px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:#9fb4cc;margin-bottom:4px">Sourced comparables (tracked deals)</div>'
+        + '<ul style="margin:0;padding-left:16px;font-size:11px;color:#9fb4cc">' + top.map(compLine).join('') + '</ul>'
+        + '<div style="font-size:10px;color:#94a3b8;font-style:italic;margin-top:6px;line-height:1.35">Estimate above is directional (internal); comparables are real, sourced deals for context.</div>';
+    } else {
+      box.innerHTML = '<div style="font-size:10px;color:#94a3b8;font-style:italic;line-height:1.35">Illustrative internal estimate — no sourced comparables tagged for this area yet.</div>';
+    }
+    card.appendChild(box);
+  }
+
+  async function renderValuationComps() {
+    const cards = document.querySelectorAll('.comp-valuation-card');
+    if (!cards.length || typeof _sb === 'undefined' || !_sb) return;
+    try {
+      const { data, error } = await _sb
+        .from('deal_comparables')
+        .select('area_id,acquirer,upfront_usd_m,total_usd_m,deal_year,source_url')
+        .order('total_usd_m', { ascending: false, nullsFirst: false });
+      if (error || !Array.isArray(data)) return;
+      const byArea = {};
+      data.forEach(c => { if (!c.area_id) return; (byArea[c.area_id] = byArea[c.area_id] || []).push(c); });
+      cards.forEach(card => {
+        const area = areaForCard(card);
+        renderCompsInto(card, area ? byArea[area] : null);
+      });
+    } catch (e) {
+      console.warn('[asset_tab] valuation comps skipped:', e.message);
+    }
+  }
+
   window.renderAssetPrograms = renderAssetPrograms;
-  document.addEventListener('DOMContentLoaded', renderAssetPrograms);
+  window.renderValuationComps = renderValuationComps;
+  document.addEventListener('DOMContentLoaded', function () {
+    renderAssetPrograms();
+    renderValuationComps();
+  });
 })();
