@@ -25,21 +25,25 @@ if _SCRIPTS_DIR not in sys.path:
 from coverage_gap_base import log, RUN_ID, table_exists, set_dry_run, is_dry_run
 from coverage_gap_finder_a import (
     gap_low_coverage_score, gap_missing_molecule_intelligence, gap_missing_drug_indications,
-    gap_missing_catalyst_entries, gap_deals_without_partnerships,
+    gap_missing_catalyst_entries,
 )
 from coverage_gap_finder_b import (
-    gap_phantom_companies, gap_unverified_relationships, gap_null_bd_angle, gap_null_risk_summary,
+    gap_phantom_companies, gap_unverified_relationships,
 )
 GAP_CHECKS = {
     "low_coverage":          gap_low_coverage_score,
     "molecule_intelligence": gap_missing_molecule_intelligence,
     "drug_indications":      gap_missing_drug_indications,
     "catalyst_calendar":     gap_missing_catalyst_entries,
-    "deal_partnerships":     gap_deals_without_partnerships,
     "phantom_companies":     gap_phantom_companies,
     "unverified_rels":       gap_unverified_relationships,
-    "bd_angle":              gap_null_bd_angle,
-    "risk_summary":          gap_null_risk_summary,
+    # ── Disabled 2026-06-19 (schema drift) ──────────────────────────────────────
+    # "deal_partnerships" (gap 5): deals.from_company/to_company are inconsistent
+    #   names-or-IDs, so ID-based partnership matching produces garbage gaps —
+    #   needs an entity-resolution-aware rewrite, not a column rename.
+    # "bd_angle" (gap 8) / "risk_summary" (gap 9): those columns were removed from
+    #   the drugs table (and exist nowhere else) — the checks query non-existent
+    #   columns. Re-enable if/when the fields return.
 }
 
 
