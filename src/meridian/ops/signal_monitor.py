@@ -27,130 +27,17 @@ import urllib.error
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-# ── Environment ──────────────────────────────────────────────────────────────
 
-_HERE = Path(__file__).resolve().parents[3]
-_CREDS_DIR = _HERE
-
-def _read_cred(fname: str) -> str:
-    p = _CREDS_DIR / fname
-    if p.exists():
-        return p.read_text().strip()
-    return os.environ.get(fname.lstrip(".").upper().replace("-","_"), "")
-
-SUPABASE_URL   = "https://tghntyofptvfhmtchwcv.supabase.co"
-SUPABASE_KEY   = _read_cred(".supabase_service_key") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY","")
-SUPABASE_ANON  = _read_cred(".supabase_anon_key")    or os.environ.get("SUPABASE_ANON_KEY","")
-
-TODAY = datetime.date.today().isoformat()
-NOW_ISO = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-
-# ── Score threshold for triggering Tier 2 enrichment ─────────────────────────
-
-TIER2_THRESHOLD = 8
-
-# ── RSS Sources ───────────────────────────────────────────────────────────────
-
-RSS_SOURCES = [
-    {
-        "name": "FDA",
-        "url":  "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-releases/rss.xml",
-        "signal_type": "fda",
-        "ua": "Mozilla/5.0 Meridian-SignalMonitor/1.0",
-    },
-    {
-        "name": "FierceBiotech",
-        "url":  "https://www.fiercebiotech.com/rss/xml",
-        "signal_type": "press_release",
-        "ua": "Mozilla/5.0 Meridian-SignalMonitor/1.0",
-    },
-    {
-        "name": "BioPharma Dive",
-        "url":  "https://www.biopharmadive.com/feeds/news/",
-        "signal_type": "press_release",
-        "ua": "Mozilla/5.0 Meridian-SignalMonitor/1.0",
-    },
-    {
-        "name": "STAT News",
-        "url":  "https://www.statnews.com/feed/",
-        "signal_type": "press_release",
-        "ua": "Mozilla/5.0 Meridian-SignalMonitor/1.0",
-    },
-]
-
-# ── Logging ───────────────────────────────────────────────────────────────────
-
-def log(msg: str, indent: int = 0) -> None:
-    prefix = "  " * indent
-    print(f"{prefix}{msg}", flush=True)
-
-# ── Supabase helpers ──────────────────────────────────────────────────────────
-
-def _sb_request(method: str, path: str, data: dict | None = None,
-                params: dict | None = None, key: str | None = None) -> list | None:
-    key = key or SUPABASE_KEY
-    url = f"{SUPABASE_URL}/rest/v1/{path}"
-    if params:
-        qs = "&".join(f"{k}={urllib.parse.quote_plus(str(v))}" for k, v in params.items())
-        url = f"{url}?{qs}"
-    headers = {
-        "apikey":        key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type":  "application/json",
-        "Prefer":        "return=representation",
-    }
-    body = json.dumps(data).encode() if data else None
-    req  = urllib.request.Request(url, data=body, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            raw = resp.read().decode()
-            return json.loads(raw) if raw.strip() else []
-    except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        log(f"  ✗ SB {method} /{path}: HTTP {e.code} — {err[:200]}", indent=1)
-        return None
-    except Exception as exc:
-        log(f"  ✗ SB {method} /{path}: {exc}", indent=1)
-        return None
-
-import urllib.parse
-
-def sb_get(table: str, params: dict) -> list:
-    return _sb_request("GET", table, params=params, key=SUPABASE_ANON) or []
-
-def sb_upsert(table: str, record: dict, on_conflict: str | None = None) -> list | None:
-    path = table
-    if on_conflict:
-        path = f"{table}?on_conflict={on_conflict}"
-    headers_extra = {"Prefer": "resolution=merge-duplicates,return=representation"}
-    # Use raw request for upsert
-    url = f"{SUPABASE_URL}/rest/v1/{path}"
-    headers = {
-        "apikey":        SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type":  "application/json",
-        "Prefer":        "resolution=merge-duplicates,return=representation",
-    }
-    body = json.dumps(record).encode()
-    req  = urllib.request.Request(url, data=body, headers=headers, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            raw = resp.read().decode()
-            return json.loads(raw) if raw.strip() else []
-    except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        if e.code == 409:
-            return []  # duplicate — expected for dedup
-        log(f"  ✗ SB upsert /{table}: HTTP {e.code} — {err[:200]}", indent=1)
-        return None
-    except Exception as exc:
-        log(f"  ✗ SB upsert /{table}: {exc}", indent=1)
-        return None
-
-def sb_insert(table: str, record: dict) -> list | None:
-    return _sb_request("POST", table, data=record)
-
-# ── Entity loading ─────────────────────────────────────────────────────────────
+# ── §3 split: IO/config → signal_base, scoring → signal_scoring ──
+from meridian.ops.signal_base import (
+    log, sb_get, sb_upsert, sb_insert, _sb_request,
+    TODAY, NOW_ISO, RSS_SOURCES, TIER2_THRESHOLD,
+    SUPABASE_URL, SUPABASE_KEY, SUPABASE_ANON,
+)
+from meridian.ops.signal_scoring import (
+    score_signal, _extract_title_from_html,
+    DISEASE_KEYWORDS, PHASE_KEYWORDS, DEAL_KEYWORDS, PIPELINE_KEYWORDS,
+)
 
 def load_watchlist() -> dict:
     """Load companies, areas, and aliases to build the relevance scoring inputs."""
@@ -224,105 +111,6 @@ def load_tracked_trials() -> dict[str, dict]:
 
 # ── Relevance scoring ─────────────────────────────────────────────────────────
 
-DISEASE_KEYWORDS = [
-    "tl1a", "tl1-a", "tnfsf15",
-    "tslp", "thymic stromal lymphopoietin",
-    "il-4r", "il4r", "il-4 receptor", "dupilumab", "il-13",
-    "fcrn", "neonatal fc receptor",
-    "igf1r", "igf-1r", "insulin-like growth factor",
-    "t-cell", "tcell", "car-t", "t cell",
-    "ulcerative colitis", " uc ", "crohn", "ibd", "inflammatory bowel",
-    "atopic dermatitis", "eczema", "asthma", "allergic",
-    "myasthenia gravis", " mg ", "itp ", "thyroid eye",
-]
-
-PHASE_KEYWORDS = [
-    "phase 2", "phase 3", "phase ii", "phase iii", "phase 2/3",
-    "primary endpoint", "efficacy data", "data readout", "topline", "top-line",
-    "clinical data", "pivotal", "approval", "fda approved", "bla", "nda", "sba",
-    "nda ", "bla ", "pdufa",
-]
-
-DEAL_KEYWORDS = [
-    "licens", "acqui", "merger", "deal", "partner", "collaboration",
-    "milestone", "upfront", "billion", "million", "agreement",
-]
-
-PIPELINE_KEYWORDS = [
-    "iND ", "ind filing", "first-in-human", "first in human", "phase 1",
-    "phase i ", "ipo", "pipeline", "candidate", "program",
-]
-
-def _extract_title_from_html(raw_title: str) -> str:
-    """Strip HTML tags from RSS title (FierceBiotech embeds anchors in title)."""
-    clean = re.sub(r'<[^>]+>', '', raw_title)
-    clean = clean.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"').replace("&#39;", "'")
-    return clean.strip()
-
-
-def score_signal(headline: str, source_url: str, signal_type: str, watchlist: dict) -> tuple[int, str | None]:
-    """Return (relevance_score 0–10, matched_company_id | None)."""
-    hl = headline.lower()
-    score = 0
-    matched_co: str | None = None
-
-    # ── Company match (most important signal) ────────────────────────────────
-    # Use word-boundary matching to avoid "vant" matching "Elevance", etc.
-    for alias, co_id in watchlist["alias_map"].items():
-        if not alias or len(alias) < 4:
-            continue
-        # For short aliases (< 8 chars), require word boundaries
-        if len(alias) < 8:
-            pattern = r'\b' + re.escape(alias) + r'\b'
-            if re.search(pattern, hl):
-                score += 3
-                if matched_co is None:
-                    matched_co = co_id
-                break
-        elif alias in hl:
-            score += 3
-            if matched_co is None:
-                matched_co = co_id
-            break
-
-    # ── Drug alias match ─────────────────────────────────────────────────────
-    for drug_alias in watchlist["drug_alias_set"]:
-        if not drug_alias or len(drug_alias) < 5:
-            continue
-        if len(drug_alias) < 10:
-            pattern = r'\b' + re.escape(drug_alias) + r'\b'
-            if re.search(pattern, hl):
-                score += 3
-                break
-        elif drug_alias in hl:
-            score += 3
-            break
-
-    # ── Disease area keywords ─────────────────────────────────────────────────
-    for kw in DISEASE_KEYWORDS:
-        if kw in hl:
-            score += 2
-            break  # only score once per category
-
-    # ── Signal type bonus ─────────────────────────────────────────────────────
-    if signal_type in ("deal",):
-        score += 2
-    elif signal_type in ("trial_update", "fda"):
-        score += 2
-    elif signal_type == "press_release":
-        for kw in DEAL_KEYWORDS:
-            if kw in hl:
-                score += 2
-                break
-        for kw in PHASE_KEYWORDS:
-            if kw in hl:
-                score += 1
-                break
-
-    return min(score, 10), matched_co
-
-
-# ── RSS fetching ───────────────────────────────────────────────────────────────
 
 def fetch_rss(source: dict, since_date: datetime.date | None = None) -> list[dict]:
     """Fetch and parse an RSS feed. Returns list of {headline, url, date, type, source_name}."""
