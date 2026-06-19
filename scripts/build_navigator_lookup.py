@@ -215,8 +215,18 @@ def print_summary(lookup: dict):
 
 def deploy(workspace: str):
     """Commit and push navigator_lookup.json to GitHub Pages."""
-    token_path = os.path.join(workspace, '.github_token')
-    token = open(token_path).read().strip()
+    # Prefer $GITHUB_TOKEN (CI); fall back to the LIVE workflow token file.
+    # (The plain .github_token is dead — never use it.)
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if not token:
+        for fname in (".github_token_workflow",):
+            p = os.path.join(workspace, fname)
+            if os.path.exists(p):
+                token = open(p).read().strip()
+                break
+    if not token:
+        print("  deploy skipped: no GITHUB_TOKEN env and no .github_token_workflow file")
+        return
 
     print("\nDeploying navigator_lookup.json to GitHub Pages...")
     cmds = [
