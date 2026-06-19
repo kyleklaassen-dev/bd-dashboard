@@ -178,14 +178,6 @@ def sb_get(table: str, params: dict = None) -> List[dict]:
     return r.json()
 
 
-def sb_patch(table: str, filters: dict, data: dict) -> bool:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    params = {k: f"eq.{v}" for k, v in filters.items()}
-    r = requests.patch(url, headers=SB_HEADERS, params=params, json=data, timeout=30)
-    r.raise_for_status()
-    return True
-
-
 def sb_post(table: str, data: dict) -> dict:
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     r = requests.post(url, headers=SB_UPSERT, json=data, timeout=30)
