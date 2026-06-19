@@ -21,6 +21,21 @@ def read(p):
     try: return p.read_text(errors="ignore")
     except: return ""
 
+# Single source of truth for core-table write detection: reuse the CI audit so the
+# scoreboard and ci-quality-gate can NEVER diverge. The old narrow regex below only
+# saw sb_upsert/sb_post/requests.* and missed sb_patch + raw-REST helpers — which is
+# exactly why this scoreboard reported a false "drugs 0" while 20 bypasses existed.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from audit_core_writers import find_bypasses, BASELINE_FILES  # noqa: E402
+
+# Root cause of write-path drift: ad-hoc write helpers scattered across the repo.
+# Every one is a place a future bypass can hide. Target: consolidate onto
+# meridian.database.client / the Writers and drive this toward 0.
+_HELPER_DEF = re.compile(r'^\s*def (sb_patch|sb_post|sb_upsert|sb_insert|sb_delete|sb_write|rest|_req)\(')
+write_helper_files = sorted({rel(p) for p in PYFILES
+                             if "database/client.py" not in rel(p)
+                             and any(_HELPER_DEF.search(l) for l in read(p).splitlines())})
+
 # ---- 1. DB write paths to core tables ----
 CORE = ["drugs","companies","entity_edges","catalysts"]
 WRITERS = {"drug_writer.py","company_writer.py","edge_writer.py","catalyst_writer.py"}
@@ -119,13 +134,24 @@ print(f"\nPython files analyzed (excl. archive): {len(PYFILES)}")
 # paths; CLAUDE.md already requires Kyle's approval for merges. Recognized, not flagged.
 MAINTENANCE = {"dedupe_entities.py"}
 def _base(s): return s.split("(")[0]
-print("\n── 1. DB WRITE PATHS TO CORE TABLES (target: the 4 writers + approved maintenance only) ──")
-for tbl in CORE:
-    sites=sorted(set(write_sites[tbl]))
-    adhoc=[s for s in sites if _base(s) not in WRITERS and _base(s) not in MAINTENANCE]
-    maint=[s for s in sites if _base(s) in MAINTENANCE]
-    flag = "  ⚠ ad-hoc writers!" if adhoc else ("  ✓ (writer + approved maintenance)" if maint else "  ✓")
-    print(f"  {tbl:14s} writers/sites: {sites or '-'}{flag}")
+print("\n── 1. DB WRITE PATHS TO CORE TABLES (target: the writers ONLY) ──")
+# drugs/companies/catalysts: authoritative detection from the CI audit (sb_* AND raw-REST).
+_fb = collections.defaultdict(list)
+for tbl, rl, ln, snip in find_bypasses():
+    if rl not in BASELINE_FILES:
+        _fb[tbl].append(f"{rl}:{ln}")
+for tbl in ("drugs", "companies", "catalysts"):
+    sites = sorted(set(_fb.get(tbl, [])))
+    flag = f"  ⚠ {len(sites)} ad-hoc direct write(s)!" if sites else "  ✓ writer-only"
+    print(f"  {tbl:14s}{flag}")
+    for s in sites[:8]:
+        print(f"       {s}")
+# entity_edges: deterministic seeders grandfathered (DB UNIQUE constraint makes them idempotent).
+ee = sorted(set(write_sites["entity_edges"]))
+ee_adhoc = [s for s in ee if _base(s) not in WRITERS and _base(s) not in MAINTENANCE]
+print(f"  {'entity_edges':14s}  {('⚠ ' + str(len(ee_adhoc)) + ' ad-hoc seeder(s) (grandfathered)') if ee_adhoc else '✓'}")
+print(f"\n  ad-hoc write-helper defs (root cause — drive to 0): {len(write_helper_files)} files "
+      f"define their own sb_*/rest/_req writer; consolidate onto meridian.database.")
 
 print("\n── 2. INGESTION PIPELINES ──")
 print(f"  src/meridian/ingestion: {len(ingestion_dir)} modules")
