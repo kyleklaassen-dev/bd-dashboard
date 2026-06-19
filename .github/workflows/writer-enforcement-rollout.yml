@@ -1,0 +1,44 @@
+name: Writer Enforcement Rollout (companies + catalysts)
+
+# Phase-2 step 2, fully server-side (no local machine needed).
+# Drugs enforcement is already live. This gates enabling the companies + catalysts
+# triggers on PROOF the overnight cron still wrote `drugs` through the drugs trigger.
+# Idempotent: once both triggers exist, every run is a no-op. Safe to leave scheduled;
+# delete this workflow once Phase-2 enforcement is confirmed complete.
+#
+# NOTE: GitHub `schedule` only fires from the DEFAULT branch — this must be merged to
+# main to start running on cron. `workflow_dispatch` can be run manually from any branch.
+
+on:
+  schedule:
+    - cron: "30 11 * * *"   # daily 11:30 UTC — after the overnight drug-write crons (04:00–10:30 UTC)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Health-check + plan only; do not apply"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify drugs cycle + enable companies/catalysts if clean
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_PAT:         ${{ secrets.SUPABASE_PAT }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then ARGS="--dry-run"; fi
+          python3 scripts/maintenance/writer_enforcement_rollout.py $ARGS
