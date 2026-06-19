@@ -327,7 +327,7 @@ def sb_upsert(table: str, records: list | dict,
 
 
 def _catalyst_upsert(rec):
-    """Single-writer drop-in (ADR-010) for sb_upsert('catalysts', ...).
+    """Single-writer drop-in (ADR-010) replacing the old direct catalyst upsert.
     Routes through CatalystWriter; preserves list-on-success / [] contract."""
     import sys, pathlib as _pl
     _b = _pl.Path(__file__).resolve().parents[4]   # repo root from src/meridian/enrichment/company/
