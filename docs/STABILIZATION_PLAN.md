@@ -58,8 +58,9 @@ Not file size. The instability is **uncoordinated database write paths**: 165 sc
 - ✅ Added `drug_id` to `efficacy_benchmarks` (10/12 linked) + `ailux_strategic_context` (2/12) — additive columns, backfilled via matcher.
 - ✅ Graph refreshed post-dedupe (link_entities --apply): 82% facts linked, consistent.
 
-### Phase 4 — Frontend  ⬜
-- ⬜ Decompose `index.html` (33,983 lines) into components. Highest effort, last.
+### Phase 4 — Frontend  🔄 (mostly done — see correction)
+- ✅ **`index.html` decomposition essentially DONE** (2026-06-19 audit): it is **7,124 lines** now (not 33,983), with JS externalized into `assets/js/` (16 modules). Only ~78 lines of inline JS remain (5 small `<script>` blocks).
+- ⬜ **New target: `assets/js/app.js` (13,554 lines, 211 functions)** — the monolith the JS moved into. Classic global-scope script; split per `docs/STATUS_AND_GAPS_2026-06-19.md` §4, browser-verified (needs supervision — live dashboard).
 
 ### Phase 5 — Resume features  ⬜
 - ⬜ Only once Phases 1–3 are green.

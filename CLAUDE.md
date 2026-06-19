@@ -36,4 +36,4 @@ Before: state the layer, affected files, affected tables, breakpoints, proposed 
 After: run/propose tests, update the changelog + `STABILIZATION_PLAN.md`, deprecate (don't ambiguously delete), add no duplicate workflows.
 
 ## Key paths
-`src/database/` (writers + shared client) · `scripts/` (active pipelines) · `scripts/maintenance/` (dedupe, audit, link tools) · `scripts/one_off/` + `archive/` (historical) · `tests/` · `migrations/` (numbered; `PROPOSED_*` = staged for review) · `index.html` (dashboard, ~34k lines — Phase 4 target).
+`src/database/` (writers + shared client) · `scripts/` (active pipelines) · `scripts/maintenance/` (dedupe, audit, link tools) · `scripts/one_off/` + `archive/` (historical) · `tests/` · `migrations/` (numbered; `PROPOSED_*` = staged for review) · `index.html` (dashboard, **~7.1k lines** — JS already externalized to `assets/js/`; the real frontend monolith is now `assets/js/app.js` ≈13.5k lines. See `docs/STATUS_AND_GAPS_2026-06-19.md` §4).
