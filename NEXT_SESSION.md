@@ -1,3 +1,26 @@
+# ✅ Phase 2 single-writer ENFORCED (audit mode) + governance hardened (2026-06-19)
+
+Big overnight session — **13 PRs merged (#27–#39)**. The Single Writer Pattern is now real and protected.
+
+**Single-writer — actually complete + enforced:**
+- Migrated **all 20 core-table direct writes** (17 `sb_*` + 3 raw-REST the first audit missed) onto the Writers via `meridian.database.update_drug/company/catalyst`. Real direct-write debt = **0** (was falsely claimed 0; was actually 20). Added `CatalystWriter.update_fields`.
+- **CI ratchets** (`audit_core_writers.py --ci`, in `ci-quality-gate.yml`): new direct writes AND new ad-hoc write-helpers both fail CI. The scoreboard now reuses the SAME detector (one source of truth — the old narrow regex was the source of the false "drugs 0").
+- **DB enforcement APPLIED (audit mode)** via Management API on **drugs + companies + catalysts**: `core_write_audit` trigger logs any non-Writer write but **blocks nothing** (exception-safe). Verified live: Writer writes pass clean, bypasses are logged not blocked. **`core_write_audit` is empty** — watch running.
+
+**⬜ Waiting on Kyle (the 2 gated items):**
+1. **Flip enforcement to hard-block** — after N clean runs (`select * from core_write_audit;` stays empty), swap the trigger body to `RAISE EXCEPTION` (see `PROPOSED_drugwriter_enforcement.sql`). Closes Phase 2.
+2. **Dry-run + merge PR #36** (`weekend_sprint` SPRINT_ID decouple): `python scripts/weekend_sprint.py --dry-run` → confirm 0 writes → merge. Then block extraction (PR-B) proceeds.
+
+**weekend_sprint split unblocked:** both mutable globals decoupled into `weekend/runtime.py` — `DRY_RUN` (#34, merged) + `SPRINT_ID` (#36, open). Verified by scoped dry-run.
+
+**Phase 4 — reality corrected:** `index.html` is **7,124 lines** (not 33,983 — already decomposed). The real monolith is now **`assets/js/app.js` (13,554 lines)**. CLAUDE.md + plan corrected. The DASH preview-verification loop (this doc, below) is the proven gate.
+
+**New tooling & docs:** Workflow Atlas extended (DB lens, function anatomy, audit) + a **Read-First Docs** page; `docs/STATUS_AND_GAPS_2026-06-19.md` (gap roadmap — top gap = test coverage); `docs/MODULARIZATION_TRIAGE_2026-06-19.md` (all 43 files >500, risk-tiered LIB/SEED/PIPE/DASH). First `entity_matcher` tests added.
+
+**In progress (this session, autonomous, authorized overnight):** executing the large-file modularization per the triage — LIB → SEED → PIPE (dry-run gated) → DASH (preview gated), each a verified PR.
+
+---
+
 # ✅ §A.2 data fix + §E/§2 designs (2026-06-18, cont.) — safe autonomous surface EXHAUSTED
 
 After the index decomposition (below), pushed through the remaining roadmap with verification:
