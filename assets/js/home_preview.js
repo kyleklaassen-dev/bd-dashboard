@@ -34,7 +34,7 @@
     if(DB){return;} // load once
     const view=document.getElementById('ml-view'); if(!view)return;
     try{
-      const [pi,tpp,drugs,treats,cats,deals,nar,prov,tri]=await Promise.all([
+      const [pi,tpp,drugs,treats,cats,deals,nar,prov,tri,programs,insights]=await Promise.all([
         Q("indication_patient_intelligence","select=indication_name,market_size_usd_bn,patient_count_us,patient_count_global,unmet_need_score,biologic_failure_rate_pct,remission_rate_soc_pct,why_it_matters"),
         Q("payer_tpp_criteria","select=indication_id,tpp_dimension,payer_willingness_to_pay,ailux_positioning,biologic_advantage_claim"),
         Q("drugs","select=id,name,display_name,stage,company_id,overlap,vs_ailux,differentiation_thesis,ailux_angle"),
@@ -43,7 +43,9 @@
         Q("deals","select=deal_date,headline,deal_type,strategic_signal&order=deal_date.desc&limit=24"),
         QALL("entity_narratives","select=id,entity_type,entity_id,section,body_md,confidence"),
         QALL("narrative_provenance","select=narrative_id,claim_text,source_url"),
-        QALL("narrative_claim_triangulation","select=narrative_id,claims,multi_source_claims,triangulated_claims")
+        QALL("narrative_claim_triangulation","select=narrative_id,claims,multi_source_claims,triangulated_claims"),
+        Q("asset_programs","select=program_code,target_pair_id,indication_lead,modality,status,differentiators&order=program_code.asc"),
+        Q("strategic_insights","select=insight_type,title,detail,metric,confidence,created_at&order=created_at.desc&limit=200")
       ]);
       const drugById={};drugs.forEach(d=>drugById[d.id]=d);
       const byInd={};treats.forEach(e=>{(byInd[e.object_id]=byInd[e.object_id]||[]).push(e.subject_id);});
@@ -52,7 +54,7 @@
       const narInd={},narTgt={};nar.forEach(n=>{const m=(n.entity_type==='indication'?narInd:n.entity_type==='target'?narTgt:null);if(m){(m[n.entity_id]=m[n.entity_id]||{})[n.section]={id:n.id,md:n.body_md,conf:n.confidence};}});
       const PROV={};prov.forEach(p=>{(PROV[p.narrative_id]=PROV[p.narrative_id]||[]).push(p);});
       const TRI={};tri.forEach(t=>{TRI[t.narrative_id]=t;});
-      DB={pi,tppBy,drugById,byInd,cats,deals,ailuxIds,narInd,narTgt,PROV,TRI};
+      DB={pi,tppBy,drugById,byInd,cats,deals,ailuxIds,narInd,narTgt,PROV,TRI,programs:programs||[],insights:insights||[]};
       go('home');
     }catch(e){view.innerHTML='<div class="ml-err">Could not load: '+E(e.message)+'</div>';}
   };
@@ -66,14 +68,34 @@
     return `<details class="ml-trust"><summary>▸ Sources &amp; provenance — ${withUrl.length}/${prov.length} externally sourced</summary><div class="ml-tri">${triLine}</div>${rows}</details>`;
   }
 
-  /* HOME */
+  /* HOME — signal-first command center (MUI). Lead with what moved + Ailux watch; doors below. */
   function vHome(){
-    const up=DB.cats.filter(c=>c.is_key_watch).slice(0,6).map(c=>{const d=dF(c.sort_date);return `<div class="ml-c"><div class="ml-when">${d<=0?'now':d+'d'}<small>${E(c.sort_date)}</small></div><div style="font-size:13px;line-height:1.4">${E(c.label)}</div></div>`;}).join('')||'<div class="ml-c">No upcoming key catalysts.</div>';
-    const dl=DB.deals.slice(0,5).map(x=>`<div class="ml-c"><div style="font-size:11px;color:#5b6b7d;min-width:78px">${E(x.deal_date)}</div><div style="font-size:12.5px;line-height:1.4">${E(x.headline)}</div></div>`).join('');
-    const L=[['commercial','💰','Commercial &amp; Market','Cited read on where the opening is — unmet population, remission ceiling, how each rival stacks vs Ailux, payer hurdle.'],['landscape','🧬','Scientific Landscapes','Cited competitive-science synthesis per target space + Meridian interpretation.'],['catalysts','📈','Pipeline &amp; Catalysts','What is about to read out, file, or present — ranked, significance-tagged.'],['deals','🤝','Deal Activity','Recent licensing / M&amp;A / financings with the strategic read where we have one.']];
-    return `<div class="ml-h2">Good morning. Here's what moved.</div><div class="ml-sub">One graph, several doors. Everything below is derived from the cited knowledge graph — open any analysis to see its sources and corroboration.</div>
-      <div class="ml-sech">⏱ Coming up — key catalysts</div><div class="ml-grid ml-feed">${up}</div>
-      <div class="ml-sech">🤝 Recent moves</div><div class="ml-grid ml-feed">${dl}</div>
+    // ── What moved: recent dated deals (the genuinely time-ordered events), deduped by headline
+    const seenD=new Set();
+    const moved=(DB.deals||[]).filter(x=>x.headline&&!seenD.has(x.headline)&&seenD.add(x.headline)).slice(0,8).map(x=>MUI.row({name:E(x.headline),sub:E((x.deal_type||'deal')+(x.deal_date?' · '+x.deal_date:'')),right:MUI.pill('Deal','info')})).join('')||'<div class="ml-sub">No recent deals.</div>';
+    // ── Strategic signals: curated high-value insight types from strategic_insights (drops publication/KOL-graph noise)
+    const HV={patient_whitespace:'high',genetically_validated:'high',discontinuation_signal:'low',partnership_termination:'low',label_safety:'low',safety_burden:'low',readout_imminent:'med',exclusivity_cliff:'med',competitive_density:'med',china_blind_spot:'med',manufacturing_risk:'med',patent_fto:'med',deal_event:'info',ma_event:'info',acquisition_signal:'info',orphan_designation:'info',funding_momentum:'info',financing_signal:'info',conference_readout:'info'};
+    const seenS=new Set();
+    const sigs=(DB.insights||[]).filter(s=>HV[s.insight_type]&&!seenS.has(s.title)&&seenS.add(s.title)).slice(0,9)
+      .map(s=>MUI.row({name:E(s.title),sub:E((s.detail?String(s.detail).slice(0,150):(s.insight_type||'').replace(/_/g,' '))),right:MUI.pill((s.insight_type||'').replace(/_/g,' '),HV[s.insight_type])})).join('')||'<div class="ml-sub">No strategic signals.</div>';
+    // ── Ailux watch: one scannable line per program
+    const watch=(DB.programs||[]).map(p=>{
+      const diffN=Array.isArray(p.differentiators)?p.differentiators.length:0;
+      const tgt=(p.target_pair_id||'').replace(/-/g,' × ').toUpperCase();
+      return MUI.row({name:E(p.program_code)+(tgt?` <span style="color:var(--mui-ink-3);font-weight:600">${E(tgt)}</span>`:''),
+        sub:E([p.indication_lead,p.modality].filter(Boolean).join(' · ')||'—'),
+        right:MUI.pill(p.status||'—','neutral')+(diffN?MUI.pill(diffN+' differentiators','info'):'')});
+    }).join('')||'<div class="ml-sub">No Ailux programs.</div>';
+    // ── Coming up: next catalysts, soonest first
+    const up=(DB.cats||[]).slice().sort((a,b)=>new Date(a.sort_date)-new Date(b.sort_date)).slice(0,8).map(c=>{const d=dF(c.sort_date);const sig=(c.significance||'').toLowerCase();
+      return MUI.timelineItem({when:d<=0?'now':d+'d',what:E(c.label),meta:(c.significance?MUI.pill(c.significance,sig.includes('high')?'low':sig.includes('med')?'med':'neutral'):'')+(c.is_key_watch?MUI.pill('key watch','med'):'')});
+    }).join('')||'<div class="ml-sub">No upcoming catalysts.</div>';
+    const L=[['commercial','💰','Commercial &amp; Market','Where the opening is — unmet population, remission ceiling, how each rival stacks vs Ailux, payer hurdle.'],['landscape','🧬','Scientific Landscapes','Cited competitive-science synthesis per target space + Meridian interpretation.'],['catalysts','📈','Pipeline &amp; Catalysts','What is about to read out, file, or present — ranked, significance-tagged.'],['deals','🤝','Deal Activity','Recent licensing / M&amp;A / financings with the strategic read where we have one.']];
+    return `<div class="ml-h2">Good morning. Here's what moved.</div><div class="ml-sub">One graph, several doors. Everything below is derived from the cited knowledge graph — open any lens to see sources and corroboration.</div>
+      <div class="ml-sech">⚡ What moved — recent deals</div><div class="mui-list">${moved}</div>
+      <div class="ml-sech">🔎 Strategic signals</div><div class="mui-list">${sigs}</div>
+      <div class="ml-sech">🎯 Ailux watch</div><div class="mui-list">${watch}</div>
+      <div class="ml-sech">⏱ Coming up — catalysts</div><div class="mui-list">${up}</div>
       <div class="ml-sech">Choose your lens</div><div class="ml-rg">${L.map(l=>`<div class="ml-rc" data-go="${l[0]}"><div class="ml-ic">${l[1]}</div><div class="ml-t">${l[2]}</div><div class="ml-d">${l[3]}</div></div>`).join('')}</div>`;
   }
   /* COMMERCIAL */
