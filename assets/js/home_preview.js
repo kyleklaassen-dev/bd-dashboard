@@ -28,26 +28,38 @@
 
   const MAP={"Multiple Myeloma":["indication","multiple_myeloma"],"Severe Asthma":["indication","asthma"],"Hidradenitis Suppurativa":["indication","hs"],"Eosinophilic Esophagitis (EoE)":["indication","eoe"],"Generalized Myasthenia Gravis":["indication","gmg"],"Thyroid Eye Disease":["indication","ted"],"Crohn's Disease":["indication","cd"],"Psoriatic Arthritis":["indication","psa"],"Lupus Nephritis":["indication","lupus_nephritis"],"COPD (Type-2 / eosinophilic)":["indication","copd"],"Ulcerative Colitis":["indication","uc"],"Chronic Spontaneous Urticaria":["indication","chronic_urticaria"],"Chronic Rhinosinusitis with Nasal Polyps":["indication","crswnp"],"Atopic Dermatitis":["indication","ad"],"Sjögren's Disease":["indication","sjogrens"],"CIDP":["indication","cidp"],"Gastric/GEJ Adenocarcinoma - FGFR2b+":["indication","gastric_cancer"],"Plaque Psoriasis":["indication","psoriasis"],"Systemic Lupus Erythematosus (SLE)":["indication","sle"],"TSLP Target Area":["area","tslp"],"FcRn Target Area":["area","fcrn"],"IGF-1R Target Area":["area","igf1r"],"IL-4Rα Target Area":["area","il4ra"],"TL1A Target Area":["area","tl1a"],"IBD (Inflammatory Bowel Disease)":["area","ibd"],"Respiratory Diseases (Broad)":["area","respiratory"],"Autoimmune Diseases (Broad)":["area","autoimmune"],"IL-23 / IL-23p19 Target Area":["area","il23p19"]};
   const TGTS=[["tl1a","TL1A × IL-23p19"],["il23p19","IL-23p19"],["tslp","TSLP"],["il4ra","IL-4Rα"],["fcrn","FcRn"],["igf1r","IGF-1R"]];
+  // ── Ailux relevance: the dashboard only surfaces these areas/targets + supporting CI ──
+  const AILUX_AREAS=['tl1a','il23p19','tslp','il33','il4ra','ox40l','igf1r','tshr','ted','fcrn','tcell','bcma','cd19','ibd','autoimmune','respiratory','atopy'];
+  const AREA_SET=new Set(AILUX_AREAS);
+  const AILUX_TARGETS=new Set(['tl1a','il23p19','il-23p19','tslp','il33','il-33','il4ra','il-4ra','ox40l','igf1r','igf-1r','tshr','fcrn','bcma','cd19','cd3','cd3e','albumin']);
+  const AREA_IN='area_id=in.('+AILUX_AREAS.join(',')+')';
+  // Ailux disease spaces (I&I / autoimmune / respiratory / derm / TED) — excludes oncology etc.
+  const AILUX_INDS=new Set(['uc','cd','ibd','ad','asthma','copd','ted','gmg','cidp','sle','sjogrens','lupus_nephritis','hs','crswnp','chronic_urticaria','psoriasis','psa','eoe','ssc','nmosd','itp','pemphigus']);
+  const relInsight=refs=>{ try{ const ind=(refs&&refs.indications)||[]; if(ind.length) return ind.some(x=>AILUX_INDS.has(String(x).toLowerCase())); const t=(refs&&refs.targets)||[]; return t.some(x=>AILUX_TARGETS.has(String(x).toLowerCase())); }catch(e){ return false; } };
   let DB=null;
 
   window.mlInit=async function(){
     if(DB){return;} // load once
     const view=document.getElementById('ml-view'); if(!view)return;
     try{
-      const [pi,tpp,drugs,treats,cats,deals,nar,prov,tri,programs,insights,clinical]=await Promise.all([
+      const CAT_F="label,sort_date,significance,is_key_watch,catalyst_type,area_id,drug_id,expected_impact,outcome_text,source_url";
+      const [pi,tpp,drugs,treats,cats,catsPast,deals,nar,prov,tri,programs,insights,clinical,facts]=await Promise.all([
         Q("indication_patient_intelligence","select=indication_name,market_size_usd_bn,patient_count_us,patient_count_global,unmet_need_score,biologic_failure_rate_pct,remission_rate_soc_pct,why_it_matters"),
         Q("payer_tpp_criteria","select=indication_id,tpp_dimension,payer_willingness_to_pay,ailux_positioning,biologic_advantage_claim"),
         Q("drugs","select=id,name,display_name,stage,company_id,overlap,vs_ailux,differentiation_thesis,ailux_angle"),
         Q("entity_edges","select=subject_id,object_id&subject_type=eq.drug&predicate=eq.TREATS&object_type=eq.indication"),
-        Q("catalysts",`select=label,sort_date,significance,is_key_watch,catalyst_type&sort_date=gte.${ISO}&order=sort_date.asc&limit=40`),
-        Q("deals","select=deal_date,headline,deal_type,strategic_signal&order=deal_date.desc&limit=24"),
+        Q("catalysts",`select=${CAT_F}&sort_date=gte.${ISO}&${AREA_IN}&order=sort_date.asc&limit=120`),
+        Q("catalysts",`select=${CAT_F}&sort_date=lt.${ISO}&${AREA_IN}&order=sort_date.desc&limit=40`),
+        Q("deals","select=deal_date,headline,deal_type,strategic_signal,area_id&order=deal_date.desc&limit=60"),
         QALL("entity_narratives","select=id,entity_type,entity_id,section,body_md,confidence"),
         QALL("narrative_provenance","select=narrative_id,claim_text,source_url"),
         QALL("narrative_claim_triangulation","select=narrative_id,claims,multi_source_claims,triangulated_claims"),
         Q("asset_programs","select=program_code,target_pair_id,indication_lead,modality,status,differentiators&order=program_code.asc"),
-        Q("strategic_insights","select=insight_type,title,detail,metric,confidence,created_at&order=created_at.desc&limit=200"),
-        Q("drug_clinical_signals","select=drug_id,best_quality_tier,best_quality_score,n_rct,max_enrollment,any_discontinued,serious_ae_organ_classes,top_serious_organ,best_remission_pct&order=best_quality_score.desc.nullslast&limit=300")
+        Q("strategic_insights","select=insight_type,title,detail,metric,entity_refs,confidence,created_at&order=created_at.desc&limit=200"),
+        Q("drug_clinical_signals","select=drug_id,best_quality_tier,best_quality_score,n_rct,max_enrollment,any_discontinued,serious_ae_organ_classes,top_serious_organ,best_remission_pct&order=best_quality_score.desc.nullslast&limit=300"),
+        QALL("intel_facts",`select=subject_id,subject_name,fact_type,claim,metric,value_text,source_url,area_id&${AREA_IN}`)
       ]);
+      const factsBySubj={}; (facts||[]).forEach(f=>{ if(f.subject_id){(factsBySubj[f.subject_id]=factsBySubj[f.subject_id]||[]).push(f);} });
       const drugById={};drugs.forEach(d=>drugById[d.id]=d);
       const byInd={};treats.forEach(e=>{(byInd[e.object_id]=byInd[e.object_id]||[]).push(e.subject_id);});
       const tppBy={};tpp.forEach(t=>{(tppBy[t.indication_id]=tppBy[t.indication_id]||[]).push(t);});
@@ -55,7 +67,7 @@
       const narInd={},narTgt={};nar.forEach(n=>{const m=(n.entity_type==='indication'?narInd:n.entity_type==='target'?narTgt:null);if(m){(m[n.entity_id]=m[n.entity_id]||{})[n.section]={id:n.id,md:n.body_md,conf:n.confidence};}});
       const PROV={};prov.forEach(p=>{(PROV[p.narrative_id]=PROV[p.narrative_id]||[]).push(p);});
       const TRI={};tri.forEach(t=>{TRI[t.narrative_id]=t;});
-      DB={pi,tppBy,drugById,byInd,cats,deals,ailuxIds,narInd,narTgt,PROV,TRI,programs:programs||[],insights:insights||[],clinical:clinical||[]};
+      DB={pi,tppBy,drugById,byInd,cats,catsPast:catsPast||[],deals,ailuxIds,narInd,narTgt,PROV,TRI,programs:programs||[],insights:insights||[],clinical:clinical||[],factsBySubj};
       go('home');
     }catch(e){view.innerHTML='<div class="ml-err">Could not load: '+E(e.message)+'</div>';}
   };
@@ -71,14 +83,25 @@
 
   /* HOME — signal-first command center (MUI). Lead with what moved + Ailux watch; doors below. */
   function vHome(){
-    // ── What moved: recent dated deals (the genuinely time-ordered events), deduped by headline
+    const sigMod=s=>{s=(s||'').toLowerCase();return s.includes('high')?'low':s.includes('med')?'med':'neutral';};
+    // top sourced fact for a drug_id (from intel_facts) — "what the research says", with its link
+    const topFact=id=>{const f=((DB.factsBySubj||{})[id]||[])[0];if(!f)return'';return ` <span style="color:var(--mui-ink-2)">${E((f.claim||f.value_text||'').slice(0,150))}</span>${f.source_url?' '+MUI.link(f.source_url,'↗'):''}`;};
+    // ── What moved: recent Ailux-relevant deals (deduped)
     const seenD=new Set();
-    const moved=(DB.deals||[]).filter(x=>x.headline&&!seenD.has(x.headline)&&seenD.add(x.headline)).slice(0,8).map(x=>MUI.row({name:E(x.headline),sub:E((x.deal_type||'deal')+(x.deal_date?' · '+x.deal_date:'')),right:MUI.pill('Deal','info')})).join('')||'<div class="ml-sub">No recent deals.</div>';
-    // ── Strategic signals: curated high-value insight types from strategic_insights (drops publication/KOL-graph noise)
+    const moved=(DB.deals||[]).filter(x=>x.headline&&AREA_SET.has(x.area_id)&&!seenD.has(x.headline)&&seenD.add(x.headline)).slice(0,8).map(x=>MUI.row({name:E(x.headline),sub:E((x.deal_type||'deal')+(x.deal_date?' · '+x.deal_date:'')),right:MUI.pill('Deal','info')})).join('')||'<div class="ml-sub">No recent deals in your areas.</div>';
+    // ── Recent readouts: PAST Ailux catalysts + what the data showed (outcome_text) + a sourced fact
+    const readouts=(DB.catsPast||[]).filter(c=>AREA_SET.has(c.area_id))
+      .sort((a,b)=>((b.outcome_text?1:0)-(a.outcome_text?1:0))||(new Date(b.sort_date)-new Date(a.sort_date)))
+      .slice(0,8).map(c=>{
+      const data=c.outcome_text?E(c.outcome_text):(c.expected_impact?'expected: '+E(String(c.expected_impact).slice(0,120)):'<span style="color:var(--mui-ink-3)">awaiting readout data</span>');
+      const src=c.source_url?' '+MUI.link(c.source_url,'source ↗'):'';
+      return MUI.row({name:E(c.label),sub:`${E(c.sort_date)} · ${data}${c.drug_id?topFact(c.drug_id):''}${src}`,right:c.significance?MUI.pill(c.significance,sigMod(c.significance)):''});
+    }).join('')||'<div class="ml-sub">No recent readouts in your areas.</div>';
+    // ── Strategic signals: high-value insight types AND Ailux-relevant (drops off-target + noise)
     const HV={patient_whitespace:'high',genetically_validated:'high',discontinuation_signal:'low',partnership_termination:'low',label_safety:'low',safety_burden:'low',readout_imminent:'med',exclusivity_cliff:'med',competitive_density:'med',china_blind_spot:'med',manufacturing_risk:'med',patent_fto:'med',deal_event:'info',ma_event:'info',acquisition_signal:'info',orphan_designation:'info',funding_momentum:'info',financing_signal:'info',conference_readout:'info'};
     const seenS=new Set();
-    const sigs=(DB.insights||[]).filter(s=>HV[s.insight_type]&&!seenS.has(s.title)&&seenS.add(s.title)).slice(0,9)
-      .map(s=>MUI.row({name:E(s.title),sub:E((s.detail?String(s.detail).slice(0,150):(s.insight_type||'').replace(/_/g,' '))),right:MUI.pill((s.insight_type||'').replace(/_/g,' '),HV[s.insight_type])})).join('')||'<div class="ml-sub">No strategic signals.</div>';
+    const sigs=(DB.insights||[]).filter(s=>HV[s.insight_type]&&relInsight(s.entity_refs)&&!seenS.has(s.title)&&seenS.add(s.title)).slice(0,9)
+      .map(s=>MUI.row({name:E(s.title),sub:E((s.detail?String(s.detail).slice(0,150):(s.insight_type||'').replace(/_/g,' '))),right:MUI.pill((s.insight_type||'').replace(/_/g,' '),HV[s.insight_type])})).join('')||'<div class="ml-sub">No strategic signals in your areas.</div>';
     // ── Ailux watch: one scannable line per program
     const watch=(DB.programs||[]).map(p=>{
       const diffN=Array.isArray(p.differentiators)?p.differentiators.length:0;
@@ -87,16 +110,18 @@
         sub:E([p.indication_lead,p.modality].filter(Boolean).join(' · ')||'—'),
         right:MUI.pill(p.status||'—','neutral')+(diffN?MUI.pill(diffN+' differentiators','info'):'')});
     }).join('')||'<div class="ml-sub">No Ailux programs.</div>';
-    // ── Coming up: next catalysts, soonest first
-    const up=(DB.cats||[]).slice().sort((a,b)=>new Date(a.sort_date)-new Date(b.sort_date)).slice(0,8).map(c=>{const d=dF(c.sort_date);const sig=(c.significance||'').toLowerCase();
-      return MUI.timelineItem({when:d<=0?'now':d+'d',what:E(c.label),meta:(c.significance?MUI.pill(c.significance,sig.includes('high')?'low':sig.includes('med')?'med':'neutral'):'')+(c.is_key_watch?MUI.pill('key watch','med'):'')});
-    }).join('')||'<div class="ml-sub">No upcoming catalysts.</div>';
+    // ── Coming up: upcoming Ailux catalysts within a year, soonest first, with what the research expects
+    const up=(DB.cats||[]).filter(c=>{const d=dF(c.sort_date);return d>=0&&d<=365;}).sort((a,b)=>new Date(a.sort_date)-new Date(b.sort_date)).slice(0,10).map(c=>{const d=dF(c.sort_date);
+      const exp=c.expected_impact?` <span style="color:var(--mui-ink-2)">— expects: ${E(String(c.expected_impact).slice(0,140))}</span>`:'';
+      return MUI.timelineItem({when:d<=0?'now':d+'d',what:E(c.label)+exp,meta:(c.significance?MUI.pill(c.significance,sigMod(c.significance)):'')+(c.is_key_watch?MUI.pill('key watch','med'):'')});
+    }).join('')||'<div class="ml-sub">No upcoming catalysts in your areas.</div>';
     const L=[['commercial','💰','Commercial &amp; Market','Where the opening is — unmet population, remission ceiling, how each rival stacks vs Ailux, payer hurdle.'],['landscape','🧬','Scientific Landscapes','Cited competitive-science synthesis per target space + Meridian interpretation.'],['clinical','🧪','Clinical Evidence','Per-drug trial-evidence signals — design quality, safety breadth, remission — from the trial harvest.'],['catalysts','📈','Pipeline &amp; Catalysts','What is about to read out, file, or present — ranked, significance-tagged.'],['deals','🤝','Deal Activity','Recent licensing / M&amp;A / financings with the strategic read where we have one.']];
-    return `<div class="ml-h2">Good morning. Here's what moved.</div><div class="ml-sub">One graph, several doors. Everything below is derived from the cited knowledge graph — open any lens to see sources and corroboration.</div>
+    return `<div class="ml-h2">Good morning. Here's what moved.</div><div class="ml-sub">Focused on Ailux's areas, targets &amp; associated companies — every item is sourced. Open any lens for the facts behind it.</div>
+      <div class="ml-sech">📊 Recent readouts — what the data showed</div><div class="mui-list">${readouts}</div>
       <div class="ml-sech">⚡ What moved — recent deals</div><div class="mui-list">${moved}</div>
       <div class="ml-sech">🔎 Strategic signals</div><div class="mui-list">${sigs}</div>
       <div class="ml-sech">🎯 Ailux watch</div><div class="mui-list">${watch}</div>
-      <div class="ml-sech">⏱ Coming up — catalysts</div><div class="mui-list">${up}</div>
+      <div class="ml-sech">⏱ Coming up — catalysts &amp; what research expects</div><div class="mui-list">${up}</div>
       <div class="ml-sech">Choose your lens</div><div class="ml-rg">${L.map(l=>`<div class="ml-rc" data-go="${l[0]}"><div class="ml-ic">${l[1]}</div><div class="ml-t">${l[2]}</div><div class="ml-d">${l[3]}</div></div>`).join('')}</div>`;
   }
   /* COMMERCIAL */
