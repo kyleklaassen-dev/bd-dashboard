@@ -1,0 +1,98 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Meridian UI design tokens + base components (MUI)  —  2026-06-20
+   The shared, visual-first vocabulary for the surface-led revamp. "Less words"
+   is enforced here: big metric values, small labels, color-encoded pills/bars,
+   prose/provenance tucked behind <details>. All classes are `mui-` prefixed so
+   they never collide with the legacy ml-/intel2-/dkn- styles. Adopt incrementally.
+   Paired with assets/js/ui.js (window.MUI). Load both early (with core.js).
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* significance / score scale (matches home_preview nc()) */
+  --mui-sig-crit: #b91c1c;   /* 9-10 */
+  --mui-sig-high: #d97706;   /* 7-8  */
+  --mui-sig-med:  #ca8a04;   /* 5-6  */
+  --mui-sig-low:  #16a34a;   /* <5   */
+  /* tier / quality (matches intel2 t-high/med/low/info) */
+  --mui-t-high: #15803d;  --mui-t-high-bg: #dcfce7;
+  --mui-t-med:  #b45309;  --mui-t-med-bg:  #fef3c7;
+  --mui-t-low:  #b91c1c;  --mui-t-low-bg:  #fee2e2;
+  --mui-t-info: #0b5e52;  --mui-t-info-bg: #e6f3f0;
+  --mui-neutral:#475569;  --mui-neutral-bg:#eef2f7;
+  /* surface + ink */
+  --mui-ink:    #0f2438;
+  --mui-ink-2:  #44566b;
+  --mui-ink-3:  #8195a8;
+  --mui-line:   #e3e9f0;
+  --mui-card:   #ffffff;
+  --mui-accent: #0b5e52;
+  --mui-link:   #1f6feb;
+  /* type scale */
+  --mui-fs-metric: 22px;   /* big value          */
+  --mui-fs-nm:     13px;   /* row name / heading */
+  --mui-fs-body:   12.5px;
+  --mui-fs-label:  10px;   /* uppercase labels   */
+  --mui-fs-sub:    11px;
+  /* spacing */
+  --mui-gap: 10px;
+  --mui-pad: 14px;
+  --mui-radius: 10px;
+}
+
+/* ── metric grid: big value, small label ─────────────────────────────────── */
+.mui-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:var(--mui-gap); }
+.mui-metric { background:var(--mui-card); border:1px solid var(--mui-line); border-radius:var(--mui-radius); padding:10px 12px; }
+.mui-metric-l { font-size:var(--mui-fs-label); font-weight:800; letter-spacing:.4px; text-transform:uppercase; color:var(--mui-ink-3); }
+.mui-metric-v { font-size:var(--mui-fs-metric); font-weight:900; color:var(--mui-ink); line-height:1.1; margin-top:2px; letter-spacing:-.4px; }
+.mui-metric-sub { font-size:var(--mui-fs-sub); color:var(--mui-ink-2); margin-top:2px; }
+
+/* ── pill: color-encoded status, one word ────────────────────────────────── */
+.mui-pill { display:inline-block; font-size:var(--mui-fs-sub); font-weight:800; line-height:1; padding:3px 8px; border-radius:999px; border:1px solid transparent; white-space:nowrap; }
+.mui-pill--high { color:var(--mui-t-high); background:var(--mui-t-high-bg); }
+.mui-pill--med  { color:var(--mui-t-med);  background:var(--mui-t-med-bg);  }
+.mui-pill--low  { color:var(--mui-t-low);  background:var(--mui-t-low-bg);  }
+.mui-pill--info { color:var(--mui-t-info); background:var(--mui-t-info-bg); }
+.mui-pill--neutral { color:var(--mui-neutral); background:var(--mui-neutral-bg); }
+
+/* ── row: name + sub on the left, pills/links on the right (intel2 pattern) ─ */
+.mui-row { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--mui-line); }
+.mui-row:last-child { border-bottom:0; }
+.mui-row-main { min-width:0; flex:0 1 auto; }
+.mui-row-nm { font-size:var(--mui-fs-nm); font-weight:700; color:var(--mui-ink); }
+.mui-row-sub { font-size:var(--mui-fs-sub); color:var(--mui-ink-2); margin-top:1px; }
+.mui-row-spacer { flex:1 1 auto; }
+.mui-row-right { display:flex; align-items:center; gap:6px; flex:0 0 auto; }
+.mui-a { color:var(--mui-link); text-decoration:none; font-size:var(--mui-fs-sub); font-weight:700; }
+.mui-a:hover { text-decoration:underline; }
+
+/* ── timeline item: when · what · meta ───────────────────────────────────── */
+.mui-tl { display:flex; gap:12px; align-items:baseline; padding:8px 4px; border-bottom:1px solid var(--mui-line); }
+.mui-tl:last-child { border-bottom:0; }
+.mui-tl-when { flex:0 0 64px; font-size:var(--mui-fs-sub); font-weight:800; color:var(--mui-accent); }
+.mui-tl-what { flex:1 1 auto; font-size:var(--mui-fs-body); color:var(--mui-ink); }
+.mui-tl-meta { display:flex; gap:6px; flex:0 0 auto; }
+
+/* ── label-value-sub grid (asset differentiator pattern) ─────────────────── */
+.mui-lvs { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:var(--mui-gap); }
+.mui-lvs-cell { background:var(--mui-card); border:1px solid var(--mui-line); border-radius:var(--mui-radius); padding:12px; }
+.mui-lvs-l { font-size:var(--mui-fs-label); font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--mui-ink-3); }
+.mui-lvs-v { font-size:var(--mui-fs-nm); font-weight:800; color:var(--mui-ink); margin-top:2px; }
+.mui-lvs-sub { font-size:var(--mui-fs-sub); color:var(--mui-ink-2); margin-top:3px; line-height:1.4; }
+
+/* ── score bar ───────────────────────────────────────────────────────────── */
+.mui-bar { display:inline-block; width:60px; height:6px; border-radius:3px; background:#eef2f7; overflow:hidden; vertical-align:middle; }
+.mui-bar > i { display:block; height:100%; background:var(--mui-accent); }
+
+/* ── trust / provenance block (home_preview trust() pattern) ─────────────── */
+.mui-trust { margin-top:8px; font-size:var(--mui-fs-sub); }
+.mui-trust > summary { cursor:pointer; color:var(--mui-ink-2); font-weight:700; }
+.mui-trust .mui-tri { color:var(--mui-accent); font-weight:700; margin:6px 0 4px; }
+.mui-src { color:var(--mui-ink-2); padding:3px 0; border-top:1px dotted var(--mui-line); line-height:1.4; }
+.mui-int { color:var(--mui-ink-3); font-style:italic; }
+
+/* ── markdown read block ─────────────────────────────────────────────────── */
+.mui-md { font-size:var(--mui-fs-body); color:var(--mui-ink); line-height:1.55; }
+.mui-md h4 { font-size:13px; font-weight:800; margin:10px 0 4px; color:var(--mui-ink); }
+.mui-md h5 { font-size:12px; font-weight:800; margin:8px 0 3px; color:var(--mui-ink-2); }
+.mui-md p { margin:0 0 7px; max-width:78ch; }
+.mui-md ul { margin:0 0 7px; padding-left:18px; }
+.mui-md .mui-cite { color:var(--mui-link); font-weight:700; }
