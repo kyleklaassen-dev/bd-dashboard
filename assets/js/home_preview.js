@@ -34,7 +34,7 @@
     if(DB){return;} // load once
     const view=document.getElementById('ml-view'); if(!view)return;
     try{
-      const [pi,tpp,drugs,treats,cats,deals,nar,prov,tri,programs,insights]=await Promise.all([
+      const [pi,tpp,drugs,treats,cats,deals,nar,prov,tri,programs,insights,clinical]=await Promise.all([
         Q("indication_patient_intelligence","select=indication_name,market_size_usd_bn,patient_count_us,patient_count_global,unmet_need_score,biologic_failure_rate_pct,remission_rate_soc_pct,why_it_matters"),
         Q("payer_tpp_criteria","select=indication_id,tpp_dimension,payer_willingness_to_pay,ailux_positioning,biologic_advantage_claim"),
         Q("drugs","select=id,name,display_name,stage,company_id,overlap,vs_ailux,differentiation_thesis,ailux_angle"),
@@ -45,7 +45,8 @@
         QALL("narrative_provenance","select=narrative_id,claim_text,source_url"),
         QALL("narrative_claim_triangulation","select=narrative_id,claims,multi_source_claims,triangulated_claims"),
         Q("asset_programs","select=program_code,target_pair_id,indication_lead,modality,status,differentiators&order=program_code.asc"),
-        Q("strategic_insights","select=insight_type,title,detail,metric,confidence,created_at&order=created_at.desc&limit=200")
+        Q("strategic_insights","select=insight_type,title,detail,metric,confidence,created_at&order=created_at.desc&limit=200"),
+        Q("drug_clinical_signals","select=drug_id,best_quality_tier,best_quality_score,n_rct,max_enrollment,any_discontinued,serious_ae_organ_classes,top_serious_organ,best_remission_pct&order=best_quality_score.desc.nullslast&limit=300")
       ]);
       const drugById={};drugs.forEach(d=>drugById[d.id]=d);
       const byInd={};treats.forEach(e=>{(byInd[e.object_id]=byInd[e.object_id]||[]).push(e.subject_id);});
@@ -54,7 +55,7 @@
       const narInd={},narTgt={};nar.forEach(n=>{const m=(n.entity_type==='indication'?narInd:n.entity_type==='target'?narTgt:null);if(m){(m[n.entity_id]=m[n.entity_id]||{})[n.section]={id:n.id,md:n.body_md,conf:n.confidence};}});
       const PROV={};prov.forEach(p=>{(PROV[p.narrative_id]=PROV[p.narrative_id]||[]).push(p);});
       const TRI={};tri.forEach(t=>{TRI[t.narrative_id]=t;});
-      DB={pi,tppBy,drugById,byInd,cats,deals,ailuxIds,narInd,narTgt,PROV,TRI,programs:programs||[],insights:insights||[]};
+      DB={pi,tppBy,drugById,byInd,cats,deals,ailuxIds,narInd,narTgt,PROV,TRI,programs:programs||[],insights:insights||[],clinical:clinical||[]};
       go('home');
     }catch(e){view.innerHTML='<div class="ml-err">Could not load: '+E(e.message)+'</div>';}
   };
@@ -90,7 +91,7 @@
     const up=(DB.cats||[]).slice().sort((a,b)=>new Date(a.sort_date)-new Date(b.sort_date)).slice(0,8).map(c=>{const d=dF(c.sort_date);const sig=(c.significance||'').toLowerCase();
       return MUI.timelineItem({when:d<=0?'now':d+'d',what:E(c.label),meta:(c.significance?MUI.pill(c.significance,sig.includes('high')?'low':sig.includes('med')?'med':'neutral'):'')+(c.is_key_watch?MUI.pill('key watch','med'):'')});
     }).join('')||'<div class="ml-sub">No upcoming catalysts.</div>';
-    const L=[['commercial','💰','Commercial &amp; Market','Where the opening is — unmet population, remission ceiling, how each rival stacks vs Ailux, payer hurdle.'],['landscape','🧬','Scientific Landscapes','Cited competitive-science synthesis per target space + Meridian interpretation.'],['catalysts','📈','Pipeline &amp; Catalysts','What is about to read out, file, or present — ranked, significance-tagged.'],['deals','🤝','Deal Activity','Recent licensing / M&amp;A / financings with the strategic read where we have one.']];
+    const L=[['commercial','💰','Commercial &amp; Market','Where the opening is — unmet population, remission ceiling, how each rival stacks vs Ailux, payer hurdle.'],['landscape','🧬','Scientific Landscapes','Cited competitive-science synthesis per target space + Meridian interpretation.'],['clinical','🧪','Clinical Evidence','Per-drug trial-evidence signals — design quality, safety breadth, remission — from the trial harvest.'],['catalysts','📈','Pipeline &amp; Catalysts','What is about to read out, file, or present — ranked, significance-tagged.'],['deals','🤝','Deal Activity','Recent licensing / M&amp;A / financings with the strategic read where we have one.']];
     return `<div class="ml-h2">Good morning. Here's what moved.</div><div class="ml-sub">One graph, several doors. Everything below is derived from the cited knowledge graph — open any lens to see sources and corroboration.</div>
       <div class="ml-sech">⚡ What moved — recent deals</div><div class="mui-list">${moved}</div>
       <div class="ml-sech">🔎 Strategic signals</div><div class="mui-list">${sigs}</div>
@@ -154,7 +155,22 @@
     const items=DB.deals.map(x=>`<div class="ml-c" style="display:block"><div style="display:flex;gap:13px;align-items:baseline"><div style="font-size:11px;color:#5b6b7d;min-width:82px">${E(x.deal_date)}<br><span style="font-weight:700;color:#1e527d">${E(x.deal_type||'')}</span></div><div style="font-size:12.5px;line-height:1.45;flex:1">${E(x.headline)}</div></div>${x.strategic_signal?`<div class="ml-signal">↳ <b>Read:</b> ${E(x.strategic_signal)}</div>`:''}</div>`).join('');
     return `<div class="ml-h2">Deal Activity</div><div class="ml-sub">Recent licensing, M&amp;A and financings — with the strategic read where Meridian has one.</div><div class="ml-grid ml-feed">${items}</div>`;
   }
-  const V={home:vHome,commercial:vComm,landscape:vLand,catalysts:vCat,deals:vDeal};
+  /* CLINICAL EVIDENCE — per-drug signals from drug_clinical_signals (MUI) */
+  function vClinical(){
+    const sig=(DB.clinical||[]).slice().sort((a,b)=>(b.best_quality_score||0)-(a.best_quality_score||0));
+    if(!sig.length)return `<div class="ml-h2">Clinical Evidence</div><div class="ml-sub">No clinical signals computed yet.</div>`;
+    const rows=sig.map(r=>{
+      const d=DB.drugById[r.drug_id],nm=d?(d.display_name||d.name||d.id):r.drug_id;const bits=[];
+      if(r.n_rct)bits.push(r.n_rct+' RCT'+(r.n_rct>1?'s':''));
+      if(r.max_enrollment)bits.push('largest n='+fN(r.max_enrollment));
+      if(r.serious_ae_organ_classes)bits.push(r.serious_ae_organ_classes+' serious-AE organ classes'+(r.top_serious_organ?' ('+r.top_serious_organ+')':''));
+      if(r.best_remission_pct!=null)bits.push('remission '+Number(r.best_remission_pct).toFixed(0)+'%');
+      if(r.any_discontinued)bits.push('⚠ trial discontinued');
+      return MUI.row({name:E(nm),sub:E(bits.join(' · ')||'evidence tracked'),right:r.best_quality_tier?MUI.qualityPill(r.best_quality_tier+(r.best_quality_score!=null?' '+Number(r.best_quality_score).toFixed(0):'')):''});
+    }).join('');
+    return `<div class="ml-h2">Clinical Evidence</div><div class="ml-sub">Per-drug signals derived from the clinical-trial harvest — trial-design quality, serious-AE breadth, remission outcomes — pre-aggregated from <code>drug_clinical_signals</code>, refreshed weekly. ${sig.length} drugs with signals; each shows only where the data exists.</div><div class="mui-list">${rows}</div>`;
+  }
+  const V={home:vHome,commercial:vComm,landscape:vLand,clinical:vClinical,catalysts:vCat,deals:vDeal};
   function go(lens){
     document.querySelectorAll('#ml-app .ml-lb').forEach(b=>b.classList.toggle('ml-on',b.dataset.lens===lens));
     document.getElementById('ml-view').innerHTML=V[lens]();
