@@ -173,8 +173,19 @@ for mod,c in indeg.most_common(8): print(f"     {c:3d} <- {mod}")
 cyc=find_cycles()
 print(f"  import cycles: {[' → '.join(c) for c in cyc] if cyc else 'none ✓'}")
 
-# CI gate: `--ci` makes a real structural regression (an import cycle) fail the build.
+# CI gate: `--ci` makes a real structural regression fail the build.
 # Interactive runs (no flag) stay informational so the scoreboard is always readable.
-if "--ci" in sys.argv and cyc:
-    print("\n✗ CI GATE FAILED: import cycle(s) detected above.")
-    sys.exit(1)
+if "--ci" in sys.argv:
+    _fail = False
+    if cyc:
+        print("\n✗ CI GATE FAILED: import cycle(s) detected above.")
+        _fail = True
+    # Modularization ratchet: no Python file may reach ≥1000 lines (currently 0).
+    # Locks in the §3 splits — a megascript can't creep back in unnoticed.
+    if over1000:
+        print("\n✗ CI GATE FAILED: file(s) ≥1000 lines (split via the §3 method):")
+        for n, f in over1000:
+            print(f"     {n:5d}  {f}")
+        _fail = True
+    if _fail:
+        sys.exit(1)
