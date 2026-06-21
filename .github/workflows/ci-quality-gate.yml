@@ -69,3 +69,5 @@ jobs:
         run: python tests/database/test_writers.py
       - name: Edge-case identity suite (read-only)
         run: python tests/database/test_edge_cases.py
+      - name: Ingestion import-smoke (entrypoints import clean; needs creds — some modules hard-check at import)
+        run: python tests/integration/test_ingestion_smoke.py
