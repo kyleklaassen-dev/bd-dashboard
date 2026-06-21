@@ -270,7 +270,15 @@ def fetch_feeds(hours_back=48):
 
     for url in RSS_FEEDS:
         try:
-            feed = feedparser.parse(url, request_headers={"User-Agent": "MeridianBot/1.0"})
+            # Fetch with a HARD timeout via requests, then hand bytes to feedparser.
+            # feedparser.parse(url) does a blocking fetch with NO timeout — a single
+            # hanging IR feed (e.g. abbvie/lilly/regeneron close the connection mid-
+            # response) stalled the whole run for ~6h until CI cancelled it, starving
+            # deals/intel writes. Bounding each feed keeps the pipeline fresh.
+            resp = requests.get(url, headers={"User-Agent": "MeridianBot/1.0"},
+                                timeout=(8, 15))  # (connect, read) seconds
+            resp.raise_for_status()
+            feed = feedparser.parse(resp.content)
             count = 0
             for entry in feed.entries:
                 link = entry.get("link", "")
