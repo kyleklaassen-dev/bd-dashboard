@@ -31,15 +31,16 @@
 
   async function fetchAll(){
     const today=new Date().toISOString().slice(0,10);
-    const [cats,sigs,facts,posters]=await Promise.all([
+    const [cats,sigs,facts,posters,voices]=await Promise.all([
       q('catalysts','select=id,label,sort_date,catalyst_date,area_id,significance,expected_impact,drug_id,company_id&area_id='+QIN+'&sort_date=gte.'+today+'&order=sort_date.asc&limit=40'),
       q('competitive_signals','select=id,area_id,signal_type,title,description,source_url,source_date,confidence,created_at&area_id='+QIN+'&order=created_at.desc&limit=80'),
-      q('intel_facts','select=id,claim,metric,value_text,value_num,unit,source_url,area_id,confidence,fact_type,created_at&area_id='+QIN+'&order=created_at.desc&limit=60'),
-      q('conference_abstracts','select=id,title,conference,conference_year,presentation_date,presentation_type,abstract_text,source_url,therapeutic_area_id,created_at&therapeutic_area_id='+QIN+'&order=created_at.desc&limit=40')
+      q('intel_facts','select=id,claim,metric,value_text,value_num,unit,source_url,area_id,confidence,fact_type,created_at&area_id='+QIN+'&fact_type=not.in.(kol_sentiment,management)&order=created_at.desc&limit=60'),
+      q('conference_abstracts','select=id,title,conference,conference_year,presentation_date,presentation_type,abstract_text,source_url,therapeutic_area_id,created_at&therapeutic_area_id='+QIN+'&order=created_at.desc&limit=40'),
+      q('intel_facts','select=id,claim,subject_name,source_url,area_id,fact_type,created_at&area_id='+QIN+'&fact_type=in.(kol_sentiment,management)&order=created_at.desc&limit=30')
     ]);
     // normalize posters to carry area_id for the shared area filter
     (posters||[]).forEach(function(p){ p.area_id=p.therapeutic_area_id; });
-    return {cats:cats,sigs:sigs,facts:facts,posters:posters||[]};
+    return {cats:cats,sigs:sigs,facts:facts,posters:posters||[],voices:voices||[]};
   }
 
   // ── section renderers ──
@@ -93,6 +94,21 @@
       + (p.abstract_text?'<div style="margin-top:4px;font-size:12px;color:#46586a;line-height:1.55;white-space:pre-wrap">'+esc(String(p.abstract_text).slice(0,420))+(p.abstract_text.length>420?'…':'')+'</div>':'')
       + '</div>';
   }
+  function voiceCard(v){
+    // claim is typically a verbatim quote (often '"…" — Name, affiliation' from the research pipeline)
+    var txt=String(v.claim||'').trim();
+    var isQuote=txt.charAt(0)==='"'||txt.charAt(0)==='“';
+    var who=v.subject_name?'<span style="font-size:11px;color:#94a3b8;font-weight:700">'+esc(v.subject_name)+'</span>':'';
+    var kind=v.fact_type==='kol_sentiment'?'KOL':'MGMT';
+    var kc=v.fact_type==='kol_sentiment'?'#9333ea':'#0f766e';
+    return '<div style="padding:10px 0;border-top:1px solid #f1f5f9">'
+      + '<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:3px">'
+      +   '<span style="font-size:9.5px;font-weight:800;color:#fff;background:'+kc+';border-radius:7px;padding:1px 7px;letter-spacing:.3px">'+kind+'</span>'+areaTag(v.area_id)+who
+      +   '<span style="font-size:11px;color:#94a3b8;font-weight:600;margin-left:auto">'+esc(fmtDate(v.created_at))+'</span>'
+      + '</div>'
+      + '<div style="font-size:13px;color:'+(isQuote?'#1e293b':'#334155')+';line-height:1.6;'+(isQuote?'font-style:italic;border-left:3px solid '+kc+';padding-left:10px':'')+'">'+esc(txt)+' '+srcLink(v.source_url)+'</div>'
+      + '</div>';
+  }
   function sectionH(t,sub){ return '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#8595a6;margin:26px 0 8px">'+esc(t)+(sub?' <span style="color:#cbd5e1;font-weight:600;text-transform:none;letter-spacing:0">· '+esc(sub)+'</span>':'')+'</div>'; }
 
   window.__briefFilter=function(a){ _fArea=a; render(); };
@@ -101,10 +117,10 @@
     const root=document.getElementById('briefing-body'); if(!root) return;
     if(!_data){ root.innerHTML='<div style="color:#64748b;padding:40px;text-align:center">Loading briefing&hellip;</div>'; return; }
     const fa=function(x){ return _fArea? x.area_id===_fArea : true; };
-    const cats=_data.cats.filter(fa), sigs=_data.sigs.filter(fa), facts=_data.facts.filter(fa), posters=(_data.posters||[]).filter(fa);
+    const cats=_data.cats.filter(fa), sigs=_data.sigs.filter(fa), facts=_data.facts.filter(fa), posters=(_data.posters||[]).filter(fa), voices=(_data.voices||[]).filter(fa);
     // freshness + filter chips
     const sub=document.getElementById('briefing-subtitle');
-    if(sub) sub.textContent=sigs.length+' developments · '+cats.length+' upcoming catalysts · '+posters.length+' posters · '+facts.length+' facts · Ailux focus areas';
+    if(sub) sub.textContent=sigs.length+' developments · '+cats.length+' upcoming catalysts · '+posters.length+' posters · '+voices.length+' voices · '+facts.length+' facts · Ailux focus areas';
     const fc=document.getElementById('briefing-filter');
     if(fc){ const present=AILUX.filter(function(a){ return _data.sigs.some(function(s){return s.area_id===a;})||_data.cats.some(function(c){return c.area_id===a;}); });
       function chip(lab,val,active){ return '<button onclick="window.__briefFilter('+(val===null?'null':"'"+val+"'")+')" style="cursor:pointer;font-size:11px;font-weight:700;padding:4px 11px;border-radius:14px;border:1px solid '+(active?'#0b5e52':'#cbd5e1')+';background:'+(active?'#0b5e52':'#fff')+';color:'+(active?'#fff':'#475569')+'">'+esc(lab)+'</button>'; }
@@ -114,6 +130,7 @@
     if(cats.length){ html+=sectionH('Coming up','what research expects'); html+='<div style="background:#fff;border:1px solid #e6edf4;border-radius:13px;padding:4px 17px 12px">'+cats.slice(0,8).map(catItem).join('')+'</div>'; }
     html+=sectionH('Developments','what just moved — sourced');
     html+= sigs.length? sigs.map(sigCard).join('') : '<div style="color:#94a3b8;padding:20px;text-align:center;font-size:13px">No recent developments in this filter.</div>';
+    if(voices.length){ html+=sectionH('KOL & industry voices','what people are saying — sourced quotes'); html+='<div style="background:#fff;border:1px solid #e6edf4;border-radius:13px;padding:4px 17px 12px">'+voices.slice(0,15).map(voiceCard).join('')+'</div>'; }
     if(posters.length){ html+=sectionH('Posters & presentations','what was shown — DDW / ECCO / EULAR / AAD / ATS …'); html+='<div style="background:#fff;border:1px solid #e6edf4;border-radius:13px;padding:4px 17px 12px">'+posters.slice(0,20).map(posterCard).join('')+'</div>'; }
     if(facts.length){ html+=sectionH('Latest facts','newest sourced intelligence'); html+='<div style="background:#fff;border:1px solid #e6edf4;border-radius:13px;padding:4px 17px 12px">'+facts.slice(0,25).map(factRow).join('')+'</div>'; }
     root.innerHTML=html;
