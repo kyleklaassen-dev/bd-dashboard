@@ -32,6 +32,11 @@ jobs:
         run: python3 scripts/integrations/publication_influence.py --write || echo "S2 non-fatal"
       - name: Recompute coverage heat map (credit all sources)
         run: python3 src/meridian/scoring/compute_attribute_completeness.py || echo "completeness non-fatal"
+      - name: Refresh drug clinical-evidence signals (UI revamp Phase C)
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: python3 scripts/apply_sql_migration.py migrations/2026-06-20_drug_clinical_signals.sql || echo "clinical-signals non-fatal"
       - name: Clean up
         if: always()
         run: rm -f .supabase_service_key
