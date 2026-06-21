@@ -28,5 +28,13 @@ Format: `ADR-NNN — Title (date) — Decision · Why · Status`.
 
 **ADR-011 — Stabilization before features (2026-06-09).** No new features until stabilization Phases 1–3 are green. *Why:* optimize for clarity, reversibility, testability, DB stability. *Status:* active (`STABILIZATION_PLAN.md`).
 
+**ADR-012 — Single Writer enforcement COMPLETE (2026-06-21).** All 4 core tables (`drugs`, `companies`, `catalysts`, `entity_edges`) are now physically write-protected: BEFORE triggers (`meridian_enforce_single_writer()`) reject any REST write whose `X-Meridian-Actor` header ≠ the table's Writer; `entity_edges` via UNIQUE. Applied during the crons-paused window; boundaries verified (headerless→400, correct actor→204). *Why:* closes ADR-010 — the convention is now DB-enforced, not just code. *Status:* active; **supersedes ADR-010's "in progress."** The `writer-enforcement-rollout.yml` automation is now obsolete.
+
+**ADR-013 — `app.js` re-extraction via the §3 method + shrink-ratchet (2026-06-21).** The frontend monolith is split into per-feature modules (`formatters`, `meridian_issue`, `dossiers`, `industry_insights`, `intel_submit`, `news_module` load **before** app.js; `home_welcome` **after** — it calls `registerTab` at eval). Functions stay global (inline `onclick`/registry depend on them); each module verified in preview (0 console errors) before merge. `check_frontend_hygiene.py --ci` enforces a shrink-only line budget so app.js can't regrow and no new file hits 2000 lines (Python ≥1000 ratcheted in `meridian_health_metrics --ci`). *Why:* "any-engineer-can-step-in" without a big-bang rewrite. *Status:* active; app.js 13.5k→~10.6k. The coupled molecule-tab rendering core (`_makeAreaPI`, narrative/card renderers) stays in app.js until AST free-var analysis is available.
+
+**ADR-014 — Event/poster research is sourced-only (2026-06-21).** `event_research.py`/`poster_research.py` write a fact only if it carries a real `http(s)` source URL (dropped otherwise); a catalyst synthesis is suppressed when 0 sourced facts are found. *Why:* extends ADR-003 to LLM-generated intel — never fabricate a URL or write an unevidenced card. *Status:* active; runs server-side (GitHub Actions) only.
+
+**ADR-005 note (2026-06-21):** the brand⇒approved rule produces false positives for approved-elsewhere competitors tracked at their Ailux-indication trial stage (7 drugs). Open: refine to accept `brand_name` when `approval_date` present (see `docs/reports/data_quality_review_2026-06-21.md`). Awaiting Kyle.
+
 ---
 *Older operational details (deploy recipes, schema specifics, pipeline notes) remain in `/docs` and memory; this register captures only durable architectural decisions.*
