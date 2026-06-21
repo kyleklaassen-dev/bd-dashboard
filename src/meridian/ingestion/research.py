@@ -76,12 +76,10 @@ COMPANY_FEEDS = [
     "https://www.astrazeneca.com/media-centre/press-releases.rss", # AstraZeneca
     "https://www.sanofi.com/en/media-room/press-releases.rss",     # Sanofi
     "https://www.novartis.com/news/media-releases/rss",            # Novartis
-    "https://www.ucb.com/media/press-releases/rss",                # UCB
-    "https://www.bmsstories.com/feed/",                            # BMS
-    "https://news.pfizer.com/press-releases/rss",                  # Pfizer
-    "https://www.merck.com/news/rss/press-releases/",              # Merck US
-    "https://www.teva.com/media-room/press-releases/rss",          # Teva
     "https://www.boehringer-ingelheim.com/media/press-releases.rss", # BI
+    # Pruned 2026-06-21 — permanently dead from CI (404/DNS/403, validated in run 27891287497):
+    #   UCB (404), BMS bmsstories (DNS), Pfizer news.pfizer (DNS), Merck (404), Teva (403).
+    #   Re-add with corrected URLs if a working feed is found.
 ]
 
 # ── Tier 3: Broader secondary sources ──
@@ -92,10 +90,8 @@ SECONDARY_FEEDS = [
     "https://www.biopharmadive.com/feeds/news/",
     "https://www.statnews.com/feed/",
     "https://www.genengnews.com/feed/",
-    "https://www.biospace.com/rss/news",
     "https://www.nature.com/nm/rss/current",
-    "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss",
-    "https://www.businesswire.com/rss/home/?rss=G7",
+    # Pruned 2026-06-21 — permanently dead from CI: BioSpace (404), NEJM (403), BusinessWire (403).
 ]
 
 RSS_FEEDS = PRIMARY_FEEDS + COMPANY_FEEDS + SECONDARY_FEEDS
