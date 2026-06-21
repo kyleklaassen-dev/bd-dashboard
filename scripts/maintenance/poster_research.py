@@ -84,7 +84,10 @@ def _resolve_drug_id(name):
     if not name:
         return None
     try:
-        hits = _sb_get("drugs", {"select": "id,name", "name": f"ilike.%{name.strip()}%", "limit": "1"})
+        safe = name.strip().replace("%", "").replace("_", "").replace(",", "")  # avoid ILIKE wildcards / PostgREST delimiters
+        if len(safe) < 3:
+            return None
+        hits = _sb_get("drugs", {"select": "id,name", "name": f"ilike.%{safe}%", "limit": "1"})
         return hits[0]["id"] if hits else None
     except Exception:
         return None
@@ -145,14 +148,24 @@ def run_research(client, area, only, max_turns=14):
 
 def _extract_json(resp):
     text = "\n".join(b.text for b in resp.content if getattr(b, "type", "") == "text" and getattr(b, "text", ""))
-    m = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
-    raw = m.group(1) if m else (text[text.find("{"):text.rfind("}") + 1] if "{" in text else None)
-    if not raw:
-        return None
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return None
+    candidates = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    candidates.append(text[start:i + 1])
+                    break
+    for raw in candidates:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 # ── Writers ──────────────────────────────────────────────────────────────────
@@ -220,6 +233,8 @@ def write_posters(area, posters, dry_run):
                                headers={**SB_HEADERS, "Prefer": "return=minimal"}, json=cs, timeout=45)
             if sr.status_code < 300:
                 signals += 1
+            else:
+                log(f"  ! competitive_signals insert failed: {sr.status_code} {sr.text[:160]}")
     return written, signals, dropped
 
 
@@ -236,7 +251,7 @@ def main():
     if not SUPABASE_KEY:
         log("FATAL: SUPABASE_SERVICE_KEY not set"); sys.exit(1)
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, timeout=300.0, max_retries=2)
     areas = [args.area] if args.area else list(AREA_CONFS.keys())
     log(f"Hunting posters for areas: {areas}{' (DRY RUN)' if args.dry_run else ''}")
 

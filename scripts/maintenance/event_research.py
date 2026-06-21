@@ -222,18 +222,26 @@ def run_research(client, ev, ctx, max_turns=14):
 
 def _extract_json(resp):
     text = "\n".join(b.text for b in resp.content if getattr(b, "type", "") == "text" and getattr(b, "text", ""))
-    m = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
-    raw = m.group(1) if m else None
-    if not raw:
-        # last-ditch: outermost braces
-        s, e = text.find("{"), text.rfind("}")
-        raw = text[s:e + 1] if s != -1 and e > s else None
-    if not raw:
-        return None
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return None
+    # Try fenced ```json / ``` blocks first, then a brace-DEPTH-matched span from the first '{'
+    # (a plain find('{')..rfind('}') can splice unrelated braces in prose into one invalid blob).
+    candidates = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    candidates.append(text[start:i + 1])
+                    break
+    for raw in candidates:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 # ── Writers ────────────────────────────────────────────────────────────────
@@ -268,13 +276,24 @@ def write_facts(ev, parsed, dry_run):
             "subject_name": None,
             "claim": str(f.get("claim", ""))[:2000],
             "metric": f.get("metric"),
-            "value_num": f.get("value_num") if isinstance(f.get("value_num"), (int, float)) else None,
+            "value_num": f.get("value_num") if (isinstance(f.get("value_num"), (int, float)) and not isinstance(f.get("value_num"), bool)) else None,
             "value_text": f.get("value_text"),
             "unit": f.get("unit"),
             "area_id": ev["area_id"],
             "confidence": f.get("confidence") if f.get("confidence") in ("high", "medium", "low") else "medium",
             "section": f"event_research:catalyst:{ev['id']}",
         })
+
+    # Idempotent re-runs: intel_facts has no unique constraint, so drop facts already stored
+    # for this catalyst (matched on section + source_url + claim) to avoid daily duplication.
+    if rows:
+        try:
+            existing = _sb_get("intel_facts", {"select": "source_url,claim",
+                                               "section": f"eq.event_research:catalyst:{ev['id']}"})
+            seen = {(x.get("source_url"), x.get("claim")) for x in existing}
+            rows = [r for r in rows if (r["source_url"], r["claim"]) not in seen]
+        except Exception as e:
+            log(f"  · intel_facts dedup check skipped: {e}")
 
     if not rows:
         return 0, dropped
@@ -318,7 +337,7 @@ def main():
     if not SUPABASE_KEY:
         log("FATAL: SUPABASE_SERVICE_KEY not set"); sys.exit(1)
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, timeout=300.0, max_retries=2)
     events = select_events(args.past_days, args.future_days, args.only)
     log(f"Selected {len(events)} candidate Ailux events; researching top {min(args.limit, len(events))}"
         f"{' (DRY RUN)' if args.dry_run else ''}.")
