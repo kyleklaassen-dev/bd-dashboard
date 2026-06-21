@@ -531,6 +531,11 @@ AFTER EVERY INDEX.HTML DEPLOY
        </div>
      </div>
    </span>
+   <!-- Download current Issue as editable Word (.doc) -->
+   <button id="mi-word-btn" onclick="meridianDownloadWord(this)" title="Download this issue as an editable Word document"
+     style="display:inline-flex;align-items:center;gap:5px;background:none;border:1px solid #dde3ea;border-radius:6px;cursor:pointer;padding:3px 10px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.07em;text-transform:uppercase;white-space:nowrap;transition:all 0.15s;"
+     onmouseenter="this.style.background='#f1f5f9';this.style.borderColor='#c8d8ed'"
+     onmouseleave="this.style.background='none';this.style.borderColor='#dde3ea'">⬇ Word</button>
    <!-- Secondary control — Area selector (AIB mode) -->
    <span id="mi-area-wrap" style="display:none;position:relative;align-items:center">
      <button id="mi-area-btn" onclick="toggleAibArea(event)"
@@ -5574,6 +5579,7 @@ function dknDismissChanges(){
 <script src="assets/js/reads.js?v=20260620intel"></script>
 <script src="assets/js/watch.js?v=20260620a"></script>
 <script src="assets/js/briefing.js?v=20260620a"></script>
+<script src="assets/js/meridian_export.js?v=20260620a"></script>
 <script src="assets/js/asset_tab.js"></script>
 
 </body>
