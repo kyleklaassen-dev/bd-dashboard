@@ -425,6 +425,12 @@ const AREA_LABELS = {
   tl1a: 'TL1A · IBD', tslp: 'TSLP · Respiratory', il4ra: 'IL-4Rα · Atopy',
   igf1r: 'IGF1R · TED', fcrn: 'FcRn · Autoimmune', tcell: 'T-cell Eng.'
 };
+// Canonical SHORT target labels — the one source for the briefing/watch/news surfaces
+// (the long disease-first AREA_LABELS above and app.js's pairing _AREA_LABEL are
+// deliberately different display styles). Loaded before all feature modules.
+const AREA_LABELS_SHORT = {
+  tl1a: 'TL1A', tslp: 'TSLP', il4ra: 'IL-4Rα', igf1r: 'IGF1R', fcrn: 'FcRn', tcell: 'T-cell', other: 'Other'
+};
 // ── Portfolio section headers — disease-first labels per tab ─────────────────
 const TAB_PORTFOLIO_LABELS = {
   'tl1a':       'IBD Portfolio',

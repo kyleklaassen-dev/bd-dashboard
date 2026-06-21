@@ -15,7 +15,7 @@
   const SB_KEY = (typeof SUPABASE_ANON!=='undefined'?SUPABASE_ANON:'');
   let _rows = null, _fArea = null;
 
-  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  const esc=MUI.esc;  // shared helper (ui.js, loaded early)
 
   // ── classification helpers ──
   function isEarly(stage){ const s=(stage||'').toLowerCase(); return s.indexOf('preclin')>=0 || /phase\s*1\b|phase\s*i\b|phase 1/.test(s); }
@@ -30,7 +30,7 @@
     if(t.indexOf('CD19')>=0 || t.indexOf('CD3')>=0 || t.indexOf('BCMA')>=0 || t.indexOf('TREG')>=0) return 'tcell';
     return 'other';
   }
-  const AREA_LABEL = {tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R',fcrn:'FcRn',tcell:'T-cell',other:'Other'};
+  const AREA_LABEL = AREA_LABELS_SHORT;  // canonical short labels from core.js
   // stage display color
   function stageColor(stage){
     const s=(stage||'').toLowerCase();

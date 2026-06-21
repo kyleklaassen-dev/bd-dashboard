@@ -13,12 +13,11 @@
   const SB_URL=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'https://tghntyofptvfhmtchwcv.supabase.co');
   const SB_KEY=(typeof SUPABASE_ANON!=='undefined'?SUPABASE_ANON:'');
   const AILUX=['tl1a','tslp','il4ra','igf1r','fcrn','tcell'];
-  const AREA_LABEL={tl1a:'TL1A',tslp:'TSLP',il4ra:'IL-4Rα',igf1r:'IGF1R',fcrn:'FcRn',tcell:'T-cell'};
+  const AREA_LABEL=AREA_LABELS_SHORT;  // canonical short labels from core.js
   const SIG_COL={clinical_update:'#1d4ed8',conference:'#b45309',financing:'#065f46',deal:'#065f46',regulatory:'#7c3aed',data:'#be123c',partnership:'#0f766e'};
   let _data=null, _fArea=null;
 
-  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function fmtDate(iso){ if(!iso) return ''; try{ return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return ''; } }
+  const esc=MUI.esc, fmtDate=MUI.fmtDate;  // shared helpers (ui.js, loaded early)
   function relDays(iso){ if(!iso) return ''; try{ var d=Math.round((new Date(iso)-Date.now())/864e5); return d<0?Math.abs(d)+'d ago':(d===0?'today':'in '+d+'d'); }catch(e){ return ''; } }
   function sigPill(sig){ var c=sig==='high'?'#991b1b':(sig==='medium'?'#92400e':'#475569'),b=sig==='high'?'#fee2e2':(sig==='medium'?'#fef3c7':'#f1f5f9');
     return '<span style="font-size:9.5px;font-weight:800;color:'+c+';background:'+b+';border-radius:10px;padding:1px 8px;text-transform:uppercase;letter-spacing:.3px">'+esc(sig||'—')+'</span>'; }
