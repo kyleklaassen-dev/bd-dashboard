@@ -1,8 +1,17 @@
--- Writer enforcement — companies + catalysts (Phase-2 step 2).
--- Applied automatically by .github/workflows/writer-enforcement-rollout.yml ONLY after the
--- overnight cron proves drugs enforcement is clean (see scripts/maintenance/writer_enforcement_rollout.py).
+-- Writer enforcement — companies + catalysts (Phase-2 step 2). APPLIED 2026-06-21.
+-- Completes the Single Writer Pattern: all 4 core tables now DB-enforced
+-- (drugs live since APPLIED_2026-06-19_writer_enforcement_drugs.sql; entity_edges via UNIQUE constraint).
+--
+-- Applied MANUALLY via the Management API (scripts/apply_sql_migration.py) during the
+-- crons-paused travel window — NOT via writer-enforcement-rollout.yml (that automation is now
+-- obsolete and the workflow is disabled). Pre-flight was clean: audit_core_writers.py --strict
+-- (0 direct writes) + tests/run_all.py (ALL SUITES GREEN).
+--
+-- Verified live after apply (no-op same-value REST round-trips):
+--   companies  headerless PATCH -> 400 ; X-Meridian-Actor: CompanyWriter  -> 204
+--   catalysts  headerless PATCH -> 400 ; X-Meridian-Actor: CatalystWriter -> 204
+--
 -- Idempotent: function is CREATE OR REPLACE; triggers are DROP IF EXISTS + CREATE.
--- The drugs trigger is already live (APPLIED_2026-06-19_writer_enforcement_drugs.sql).
 
 CREATE OR REPLACE FUNCTION meridian_enforce_single_writer()
 RETURNS trigger AS $$
