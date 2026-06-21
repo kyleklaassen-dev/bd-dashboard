@@ -214,6 +214,55 @@ def fetch_company_signals():
         return []
 
 
+def fetch_recent_facts(days_back=14, limit=40):
+    """Freshest SOURCED facts from the event-driven research pipeline (intel_facts)
+    across Ailux's areas — the deep-research output, including KOL/management quotes.
+    Every row carries a real source URL. Fed into the editorial plan so the Meridian
+    issue reflects the current research, not just RSS headlines. Fail-soft."""
+    try:
+        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=days_back)).isoformat()
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/intel_facts",
+            headers=SB_HEADERS,
+            params={
+                "select": "claim,fact_type,subject_name,value_text,source_url,area_id,created_at",
+                "area_id": "in.(tl1a,tslp,il4ra,igf1r,fcrn,tcell)",
+                "created_at": f"gte.{cutoff}",
+                "source_url": "not.is.null",
+                "order": "created_at.desc",
+                "limit": str(limit),
+            },
+        )
+        if r.status_code != 200:
+            log(f"Recent facts unavailable ({r.status_code}) — skipping")
+            return []
+        data = r.json()
+        if not isinstance(data, list):
+            return []
+        log(f"Fetched {len(data)} recent deep-research facts")
+        return data
+    except Exception as e:
+        log(f"Recent facts fetch error: {e}")
+        return []
+
+
+def build_recent_facts_block(facts):
+    """Render recent sourced facts (incl. KOL/management quotes) as an editorial
+    context block. Quotes are flagged so the LLM can attribute them."""
+    if not facts:
+        return ""
+    lines = ["", "## Recent deep-research facts (sourced; event-driven research — use with attribution)"]
+    for f in facts[:40]:
+        who = f.get("subject_name") or (f.get("area_id") or "")
+        val = f" [{f['value_text']}]" if f.get("value_text") else ""
+        kind = f.get("fact_type") or "fact"
+        tag = "QUOTE" if kind in ("kol_sentiment", "management") else kind
+        claim = (f.get("claim") or "")[:260]
+        url = f.get("source_url") or ""
+        lines.append(f"- ({tag}) {claim}{val} — {who} {url}")
+    return "\n".join(lines)
+
+
 def fetch_graph_context():
     """
     Fetch entity_edges for graph-grounded competitive intelligence.
