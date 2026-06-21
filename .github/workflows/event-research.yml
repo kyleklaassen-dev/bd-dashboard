@@ -1,0 +1,60 @@
+name: Event-Driven Deep Research
+
+# When a catalyst is imminent or has just passed, hyper-focus on that molecule /
+# company / event, research it deeply from the live web, and STORE the facts:
+#   • sourced facts → intel_facts (every fact carries a real URL, or it is dropped)
+#   • a synthesis    → catalyst.expected_impact (future) / outcome_text (past)
+# Sourced-only: never fabricates a URL; a synthesis is suppressed when no facts found.
+#
+# Runs server-side only (GitHub Actions) — never depends on a laptop being on.
+on:
+  schedule:
+    - cron: "30 9 * * 1-5"     # 09:30 UTC (after the overnight data crons land), weekdays
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max events to research this run"
+        required: false
+        default: "4"
+      only:
+        description: "Restrict to one mode (past / future); blank = both"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run (research + parse, write nothing)"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: event-research
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install anthropic requests
+      - name: Event-driven deep research
+        run: |
+          ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ARGS="--limit ${{ github.event.inputs.limit }}"
+            if [ -n "${{ github.event.inputs.only }}" ]; then ARGS="$ARGS --only ${{ github.event.inputs.only }}"; fi
+            if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          else
+            ARGS="--limit 4"
+          fi
+          echo "Running: event_research.py $ARGS"
+          python3 scripts/maintenance/event_research.py $ARGS
