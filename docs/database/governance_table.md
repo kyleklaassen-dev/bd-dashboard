@@ -1,6 +1,8 @@
 # Data Governance Table
 
-**Status:** v1, 2026-06-09. Per core table: who owns it, the sole writer, the validation that must pass on write, and the source hierarchy. This is the spec the Writer layer enforces (Constitution §4, §6).
+**Status:** v1, 2026-06-09 (enforcement note 2026-06-21). Per core table: who owns it, the sole writer, the validation that must pass on write, and the source hierarchy. This is the spec the Writer layer enforces (Constitution §4, §6).
+
+> **Enforcement is LIVE for all core tables (2026-06-21).** `drugs`, `companies`, and `catalysts` each have a BEFORE INSERT/UPDATE/DELETE trigger (`meridian_enforce_single_writer()`) that rejects any REST write whose `X-Meridian-Actor` header ≠ the table's sanctioned Writer (direct SQL/Management API still allowed). `entity_edges` is protected by its UNIQUE constraint. The "sole writer (target)" column below is now physically enforced, not just convention. Migrations: `APPLIED_2026-06-19_writer_enforcement_drugs.sql`, `APPLIED_2026-06-21_writer_enforcement_companies_catalysts.sql`.
 
 ## Core entities (Single Writer Pattern target)
 
