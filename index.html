@@ -468,6 +468,8 @@ AFTER EVERY INDEX.HTML DEPLOY
    <!-- 2026-06-19 (rec #8/#9): Discovery Queue (🔍) + Submitted Intel (📥) moved into the ⚙ Admin hub; ✨ Home Preview promoted to 🏠. -->
   <!-- Reads — short interpretive takes from research (research_reads). Added 2026-06-10. -->
   <button class="nav-icon-btn" id="nav-icon-reads" onclick="navTo('reads')" title="Reads — short interpretive takes from research" style="position:relative;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#5b2da8;color:#fff;border-color:#5b2da8;letter-spacing:.2px;">📑 Reads<span id="reads-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 2px #fff">0</span></button>
+  <!-- Executive Briefing — the cross-cutting 'what's happening' surface (signals + catalysts + facts). Added 2026-06-20. -->
+  <button class="nav-icon-btn" id="nav-icon-briefing" onclick="navTo('briefing')" title="Executive Briefing — what's happening across Ailux's areas: developments, upcoming catalysts and what research expects, latest sourced facts" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#0b3d5e;color:#fff;border-color:#0b3d5e;letter-spacing:.2px;">📋 Briefing</button>
   <!-- Priority Watch — depth-focus list of direct competitors, preclinical/early first. Added 2026-06-20. -->
   <button class="nav-icon-btn" id="nav-icon-watch" onclick="navTo('watch')" title="Priority Watch — companies running direct competitors of Ailux molecules; preclinical/early core-mechanism threats first" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#991b1b;color:#fff;border-color:#991b1b;letter-spacing:.2px;">🎯 Watch</button>
   <!-- Intelligence — surfaces previously-hidden backend tables (genetics, trial-design quality, conference signals, EU approvals, manufacturing, strategic insights, narrative trust). Added 2026-06-15. -->
@@ -493,6 +495,7 @@ AFTER EVERY INDEX.HTML DEPLOY
         <button class="tab-btn" onclick="switchTab('submitted-intel', this)" style="display:none">Submitted Intel</button>
         <button class="tab-btn" onclick="switchTab('reads', this)" style="display:none">Reads</button>
         <button class="tab-btn" onclick="switchTab('watch', this)" style="display:none">Watch</button>
+        <button class="tab-btn" onclick="switchTab('briefing', this)" style="display:none">Briefing</button>
         <button class="tab-btn" onclick="switchTab('intel2', this)" style="display:none">Intelligence</button>
         <button class="tab-btn" onclick="switchTab('audit', this)" style="display:none">Audit</button>
         <button class="tab-btn" onclick="switchTab('ontology', this)" style="display:none">Ontology Audit</button>
@@ -563,6 +566,16 @@ AFTER EVERY INDEX.HTML DEPLOY
 <div class="tab-pane" id="tab-predictions">
   <iframe id="predictions-frame" src="web/predictions.html" title="Predictions — Meridian foresight ledger"
     style="width:100%;min-height:calc(100vh - 130px);border:0;display:block;background:#f8fafc;"></iframe>
+</div>
+
+<!-- ══════════════ EXECUTIVE BRIEFING TAB — what's happening (signals + catalysts + facts). Added 2026-06-20. ══════════════ -->
+<div class="tab-pane" id="tab-briefing" style="padding:0;background:#f4f7fb;min-height:100vh">
+  <div style="max-width:880px;margin:0 auto;padding:28px 20px 60px">
+    <div style="font-size:24px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:10px">📋 Executive Briefing</div>
+    <div id="briefing-subtitle" style="font-size:12px;color:#94a3b8;font-weight:600;margin:8px 0 14px"></div>
+    <div id="briefing-filter" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px"></div>
+    <div id="briefing-body"></div>
+  </div>
 </div>
 
 <!-- ══════════════ PRIORITY WATCH TAB — direct competitors, early-first. Added 2026-06-20. ══════════════ -->
@@ -5560,6 +5573,7 @@ function dknDismissChanges(){
 <!-- ── READS TAB logic (live daily `intel` feed) — additive, self-contained. Added 2026-06-10; rewired to intel 2026-06-20. ── -->
 <script src="assets/js/reads.js?v=20260620intel"></script>
 <script src="assets/js/watch.js?v=20260620a"></script>
+<script src="assets/js/briefing.js?v=20260620a"></script>
 <script src="assets/js/asset_tab.js"></script>
 
 </body>
