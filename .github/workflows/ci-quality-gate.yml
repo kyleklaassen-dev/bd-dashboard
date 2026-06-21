@@ -35,8 +35,10 @@ jobs:
         run: python tests/unit/test_pure_functions.py
       - name: Entity-matcher pure characterization tests
         run: PYTHONPATH=src python tests/unit/test_entity_matcher_pure.py
-      - name: Structural health — fail on any import cycle
+      - name: Structural health — fail on any import cycle OR file ≥1000 lines
         run: PYTHONPATH=src python scripts/maintenance/meridian_health_metrics.py --ci
+      - name: Frontend hygiene — JS size ratchet + canonical shared sources
+        run: python scripts/maintenance/check_frontend_hygiene.py --ci
       - name: Repo hygiene — fail on broken workflow→path references
         run: python scripts/maintenance/repo_hygiene_check.py
       - name: Single-writer guard — fail on NEW direct writes to core tables
