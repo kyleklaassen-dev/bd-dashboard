@@ -205,7 +205,24 @@
     return `<div class="intel2-subh">Sizing the prize — <code>indication_patient_intelligence</code> ranks diseases by <b>unmet need</b> with patient counts, market size and biologic-failure rates. This is a NEW read of the same table; the homepage patient cards are unchanged. ${rows.length} indications profiled.</div>${list}`;
   }
 
-  const RENDER={insights:rInsights,genetics:rGenetics,trials:rTrials,conf:rConf,eu:rEu,mfg:rMfg,trust:rTrust,kols:rKols,grants:rGrants,ownership:rOwnership,market:rMarket};
+  function rClinical(){
+    const sig=DB.clinical||[], nameById=DB.nameById||{};
+    if(!sig.length) return '<div class="intel2-muted">No clinical signals computed yet.</div>';
+    const rows=sig.slice().sort((a,b)=>(b.best_quality_score||0)-(a.best_quality_score||0)).map(r=>{
+      const nm=nameById[r.drug_id]||r.drug_id;
+      const bits=[];
+      if(r.n_rct) bits.push(r.n_rct+' RCT'+(r.n_rct>1?'s':''));
+      if(r.max_enrollment) bits.push('largest n='+fNum(r.max_enrollment));
+      if(r.serious_ae_organ_classes) bits.push(r.serious_ae_organ_classes+' serious-AE organ classes'+(r.top_serious_organ?' (top: '+E(r.top_serious_organ)+')':''));
+      if(r.best_remission_pct!=null) bits.push('remission '+Number(r.best_remission_pct).toFixed(0)+'%');
+      if(r.any_discontinued) bits.push('⚠ trial discontinued'+(r.why_stopped?': '+E(String(r.why_stopped).slice(0,60)):''));
+      const right=r.best_quality_tier?`<span class="intel2-pill ${tier(r.best_quality_tier)}">${E(r.best_quality_tier)}${r.best_quality_score!=null?' '+Number(r.best_quality_score).toFixed(0):''}</span>`:'';
+      return `<div class="intel2-row"><div><div class="intel2-nm">${E(nm)}</div><div class="intel2-sub">${bits.join(' · ')||'evidence tracked'}</div></div><div class="intel2-spacer"></div>${right}</div>`;
+    }).join('');
+    return `<div class="intel2-subh">Per-drug clinical-evidence signals from the CTGov harvest (<code>trial_design_quality</code>, <code>ct_trial_adverse_events</code>, <code>trial_outcome_measures</code>) — pre-aggregated into <code>drug_clinical_signals</code>, refreshed weekly. ${sig.length} drugs with signals; each signal shows only where the data exists (115 quality / 58 safety / 20 remission).</div>${rows}`;
+  }
+
+  const RENDER={insights:rInsights,clinical:rClinical,genetics:rGenetics,trials:rTrials,conf:rConf,eu:rEu,mfg:rMfg,trust:rTrust,kols:rKols,grants:rGrants,ownership:rOwnership,market:rMarket};
 
   function paint(){
     const body=document.getElementById('intel2-body'); if(!body) return;
@@ -220,7 +237,7 @@
     LOADING=true;
     const body=document.getElementById('intel2-body');
     try{
-      const [insights,tda,tgen,tdq,cas,eu,mfg,prov,tri,kols,kolm,grants,own,ipi]=await Promise.all([
+      const [insights,tda,tgen,tdq,cas,eu,mfg,prov,tri,kols,kolm,grants,own,ipi,clin,drugs]=await Promise.all([
         Q('strategic_insights','select=insight_type,title,detail,metric,source_tables,confidence&order=created_at.desc&limit=1000'),
         Q('target_disease_assoc','select=symbol,indication_name,efo_name,overall_score,genetic_association_score&order=genetic_association_score.desc.nullslast&limit=1000'),
         Q('target_genetics','select=symbol,constraint_type,oe,score,source,source_url&limit=1000'),
@@ -234,9 +251,12 @@
         Q('kol_metrics','select=kol_name,h_index,citation_count,paper_count,source_url&order=h_index.desc.nullslast&limit=1000'),
         QALL('grants','select=title,pi_names,org_name,fiscal_year,award_amount,agency,matched_target,matched_indication,project_url,source_url,confidence'),
         Q('company_ownership','select=company_id,relationship_type,parent_legal_name,parent_company_id,source_url,confidence&limit=1000'),
-        Q('indication_patient_intelligence','select=indication_name,simplified_label,patient_count_us,patient_count_global,market_size_usd_bn,unmet_need_score,unmet_need_severity,biologic_failure_rate_pct,why_it_matters,source_urls&order=unmet_need_score.desc.nullslast&limit=1000')
+        Q('indication_patient_intelligence','select=indication_name,simplified_label,patient_count_us,patient_count_global,market_size_usd_bn,unmet_need_score,unmet_need_severity,biologic_failure_rate_pct,why_it_matters,source_urls&order=unmet_need_score.desc.nullslast&limit=1000'),
+        Q('drug_clinical_signals','select=drug_id,best_quality_tier,best_quality_score,n_rct,total_trials_scored,max_enrollment,any_discontinued,why_stopped,serious_ae_organ_classes,top_serious_organ,best_remission_pct&order=best_quality_score.desc.nullslast&limit=1000'),
+        Q('drugs','select=id,display_name,name&limit=2000')
       ]);
-      DB={insights,tda,tgen,tdq,cas,eu,mfg,prov,tri,kols,kolm,grants,own,ipi};
+      const nameById={}; (drugs||[]).forEach(d=>{ nameById[d.id]=d.display_name||d.name||d.id; });
+      DB={insights,tda,tgen,tdq,cas,eu,mfg,prov,tri,kols,kolm,grants,own,ipi,clinical:clin||[],nameById};
       paint();
     }catch(e){
       if(body) body.innerHTML='<div class="intel2-muted">Could not load intelligence: '+E(e&&e.message?e.message:e)+'</div>';
