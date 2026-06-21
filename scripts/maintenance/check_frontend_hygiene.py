@@ -24,7 +24,7 @@ JS = os.path.join(ROOT, "assets", "js")
 # Shrink-only budgets. LOWER these as Domain A2 extracts modules from app.js.
 # A file may be at or below its budget, never above.
 SIZE_BUDGET = {
-    "app.js": 11787,   # the monolith — re-extraction target; lower per A2 PR
+    "app.js": 11222,   # the monolith — re-extraction target; lower per A2 PR
     "core.js": 2228,
 }
 GENERAL_CAP = 2000     # any other assets/js file must stay under this (no new monoliths)
