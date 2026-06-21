@@ -62,6 +62,8 @@
   function setBadge(n){ const b=document.getElementById('reads-badge'); if(!b) return; if(n>0){ b.textContent=n>9?'9+':String(n); b.style.display='inline-block'; } else { b.style.display='none'; } }
   let _fType=null, _fTarget=null;   // active filters (null = all)
   function targetsOf(r){ return ((r.entity_refs||{}).targets)||[]; }
+  // escape a value going into a single-quoted JS string inside a double-quoted attr
+  function escJs(s){ return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
   function chip(label,active,onclickAttr,col){
     const bg=active?(col||'#5b2da8'):'#fff', fg=active?'#fff':'#475569', bd=active?(col||'#5b2da8'):'#cbd5e1';
     return '<button onclick="'+onclickAttr+'" style="cursor:pointer;font-size:11px;font-weight:700;padding:4px 11px;border-radius:14px;border:1px solid '+bd+';background:'+bg+';color:'+fg+';letter-spacing:.2px">'+esc(label)+'</button>';
@@ -73,10 +75,10 @@
     const gc=document.getElementById('reads-filter-target');
     if(tc){ tc.innerHTML='<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:2px">CATEGORY</span>'
       + chip('All',_fType===null,"window.__readsFilter('type',null)")
-      + types.map(function(t){return chip(t.replace(/_/g,' '),_fType===t,"window.__readsFilter('type','"+t+"')",TYPE_COLORS[t]);}).join(''); }
+      + types.map(function(t){return chip(t.replace(/_/g,' '),_fType===t,"window.__readsFilter('type','"+escJs(t)+"')",TYPE_COLORS[t]);}).join(''); }
     if(gc){ gc.innerHTML = targets.length ? ('<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:2px">TARGET</span>'
       + chip('All',_fTarget===null,"window.__readsFilter('target',null)")
-      + targets.map(function(t){return chip(t,_fTarget===t,"window.__readsFilter('target','"+t.replace(/'/g,"\\'")+"')",'#0f766e');}).join('')) : ''; }
+      + targets.map(function(t){return chip(t,_fTarget===t,"window.__readsFilter('target','"+escJs(t)+"')",'#0f766e');}).join('')) : ''; }
   }
   function renderList(){
     const list=document.getElementById('reads-list'); if(!list) return;
@@ -98,7 +100,7 @@
       _reads = await fetchReads();
       if(!_reads.length){ list.innerHTML='<div style="color:#64748b;padding:40px;text-align:center">No reads yet. They appear here as research surfaces them.</div>'; setBadge(0); return; }
       buildFilters(); renderList();
-      localStorage.setItem(SEEN_KEY,_reads[0].created_at);
+      if(_reads[0] && _reads[0].created_at) localStorage.setItem(SEEN_KEY,_reads[0].created_at);  // guard null → avoids storing "null"
       setBadge(0);
     }catch(e){ list.innerHTML='<div style="color:#b91c1c;padding:40px;text-align:center">Could not load reads ('+esc(e.message)+')</div>'; }
   }

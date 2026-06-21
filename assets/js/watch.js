@@ -26,7 +26,7 @@
     if(t.indexOf('TSLP')>=0) return 'tslp';
     if(t.indexOf('IL-4')>=0 || t.indexOf('IL4')>=0 || t.indexOf('IL-13')>=0 || t.indexOf('IL13')>=0 || t.indexOf('OX40')>=0) return 'il4ra';
     if(t.indexOf('IGF')>=0 || t.indexOf('TSHR')>=0) return 'igf1r';
-    if(t.indexOf('FCRN')>=0 || t.indexOf('FCRN')>=0) return 'fcrn';
+    if(t.indexOf('FCRN')>=0 || t.indexOf('FCGRT')>=0) return 'fcrn';
     if(t.indexOf('CD19')>=0 || t.indexOf('CD3')>=0 || t.indexOf('BCMA')>=0 || t.indexOf('TREG')>=0) return 'tcell';
     return 'other';
   }
@@ -113,7 +113,10 @@
     const lead=c.drugs[0]||{};
     const angle=(lead.angle||lead.vs||'').trim();
     const why=angle?'<div style="margin-top:9px;font-size:12px;color:#46586a;line-height:1.5;border-left:3px solid '+t.col+';background:#f8fafc;padding:7px 11px;border-radius:0 6px 6px 0">'+esc(angle.slice(0,260))+(angle.length>260?'…':'')+'</div>':'';
-    return '<div onclick="window.__watchOpen(\''+esc(c.key)+'\')" style="background:#fff;border:1px solid #e6edf4;border-left:4px solid '+t.col+';border-radius:13px;padding:15px 17px;margin-bottom:12px;cursor:pointer;transition:box-shadow .15s" '
+    // data-key (esc'd into a double-quoted attr) + delegated click — avoids building a
+    // single-quoted JS string in onclick, which MUI.esc does NOT escape (company_display
+    // can contain apostrophes → broken handler / injection).
+    return '<div class="watch-card" data-key="'+esc(c.key)+'" style="background:#fff;border:1px solid #e6edf4;border-left:4px solid '+t.col+';border-radius:13px;padding:15px 17px;margin-bottom:12px;cursor:pointer;transition:box-shadow .15s" '
       + 'onmouseover="this.style.boxShadow=\'0 4px 16px rgba(20,40,70,.08)\'" onmouseout="this.style.boxShadow=\'none\'">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'
       +   '<div style="font-size:16px;font-weight:900;color:#0f172a">'+esc(c.name)+'</div>'
@@ -146,6 +149,7 @@
     }
     list.innerHTML = companies.length ? companies.map(card).join('')
       : '<div style="color:#64748b;padding:40px;text-align:center">No priority companies in this area.</div>';
+    list.querySelectorAll('.watch-card').forEach(function(el){ el.onclick=function(){ window.__watchOpen(el.dataset.key); }; });
   }
 
   async function load(){

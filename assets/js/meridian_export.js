@@ -8,6 +8,8 @@
   const SB_URL=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'https://tghntyofptvfhmtchwcv.supabase.co');
   const SB_KEY=(typeof SUPABASE_ANON!=='undefined'?SUPABASE_ANON:'');
 
+  // escape title/date (they bypass clean(); DB free-text → must not inject markup into the doc)
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   // strip scripts / inline handlers / iframes so the exported doc is clean prose+tables
   function clean(html){
     return String(html||'')
@@ -19,7 +21,7 @@
   function wordBlob(inner,title){
     const head='<html xmlns:o="urn:schemas-microsoft-com:office:office" '
       +'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
-      +'<head><meta charset="utf-8"><title>'+title+'</title>'
+      +'<head><meta charset="utf-8"><title>'+esc(title)+'</title>'
       +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
       +'<style>'
       +'body{font-family:Georgia,"Times New Roman",serif;font-size:11pt;line-height:1.5;color:#1a1a1a;margin:1in}'
@@ -61,7 +63,7 @@
       if(btn){ btn.disabled=true; btn.innerHTML='Preparing…'; }
       const iss=await getIssue();
       const dateSlug=(iss.date||new Date().toISOString().slice(0,10)).replace(/[^0-9A-Za-z]/g,'-').slice(0,24);
-      const titleBlock='<h1>'+(iss.title||'The Meridian')+'</h1>'+(iss.date?'<p style="color:#64748b;font-style:italic">'+iss.date+'</p>':'');
+      const titleBlock='<h1>'+esc(iss.title||'The Meridian')+'</h1>'+(iss.date?'<p style="color:#64748b;font-style:italic">'+esc(iss.date)+'</p>':'');
       const blob=wordBlob(titleBlock+clean(iss.html),iss.title||'The Meridian');
       download(blob,'Meridian_'+dateSlug+'.doc');
     }catch(e){
