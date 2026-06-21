@@ -6,8 +6,7 @@
   const TYPE_COLORS = {competitive:'#b45309',clinical_caveat:'#be123c',mechanism:'#1d4ed8',market:'#065f46',regulatory:'#7c3aed',thesis:'#0f766e',kol:'#9333ea',patient:'#0369a1',other:'#475569',
     data:'#be123c',deal:'#065f46',partnership:'#0f766e',conference:'#b45309',management:'#475569'};
   let _reads = null;
-  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return ''; } }
+  const esc=MUI.esc, fmtDate=MUI.fmtDate;  // shared helpers (ui.js, loaded early)
   function refsLine(r){
     const e=r.entity_refs||{}; const parts=[].concat(e.drugs||[],e.companies||[],e.targets||[]);
     return parts.length ? parts.map(function(p){return '<span style="background:#eef2f7;color:#334155;font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px">'+esc(p)+'</span>';}).join(' ') : '';

@@ -19,7 +19,7 @@
          : '' + n;
   };
 
-  const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return d == null ? '—' : String(d); } };
+  const fmtDate = d => { if (d == null || d === '') return ''; try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return String(d); } };
   const daysUntil = d => { try { return Math.round((new Date(d) - new Date()) / 864e5); } catch (e) { return null; } };
   const relDays = d => { const n = daysUntil(d); return n == null ? '—' : n === 0 ? 'now' : n > 0 ? `${n}d` : `${-n}d ago`; };
 
