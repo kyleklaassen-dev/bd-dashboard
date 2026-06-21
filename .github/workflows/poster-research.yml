@@ -1,0 +1,64 @@
+name: Conference Poster Discovery
+
+# Actively hunts conference posters/presentations (DDW/ECCO/EULAR/AAD/ATS/ACR/…)
+# relevant to Ailux's molecules and direct competitors, and stores the specifics:
+#   • enriched records → conference_abstracts (deduped on title+year)
+#   • high-signal posters → competitive_signals (signal_type='conference') → surface
+#     in the Executive Briefing + intel2
+# Sourced-only: never fabricates a URL. Server-side only (never depends on a laptop).
+on:
+  schedule:
+    - cron: "30 11 * * 2"     # weekly, Tue 11:30 UTC (conference data lands in waves)
+  workflow_dispatch:
+    inputs:
+      area:
+        description: "Single area (tl1a/tslp/il4ra/igf1r/fcrn/tcell); blank = all"
+        required: false
+        default: ""
+      only:
+        description: "upcoming / past; blank = both"
+        required: false
+        default: ""
+      limit:
+        description: "Max posters kept per area"
+        required: false
+        default: "8"
+      dry_run:
+        description: "Dry run (write nothing)"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: poster-research
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+jobs:
+  posters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install anthropic requests
+      - name: Hunt conference posters
+        run: |
+          ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.area }}" ]; then ARGS="$ARGS --area ${{ github.event.inputs.area }}"; fi
+            if [ -n "${{ github.event.inputs.only }}" ]; then ARGS="$ARGS --only ${{ github.event.inputs.only }}"; fi
+            ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
+            if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          else
+            ARGS="--limit 8"
+          fi
+          echo "Running: poster_research.py $ARGS"
+          python3 scripts/maintenance/poster_research.py $ARGS
