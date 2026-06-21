@@ -53,6 +53,7 @@ from meridian.products.issue.fetch import (
     fetch_ailux_position, fetch_recent_meridian_issues, fetch_company_signals,
     fetch_graph_context, fetch_catalyst_calendar, fetch_bd_priority_companies,
     fetch_patient_intelligence_stats, fetch_recent_trials,
+    fetch_recent_facts, build_recent_facts_block,
     build_patient_stats_block, build_catalyst_calendar_block, build_bd_priority_block,
 )
 from meridian.products.issue.blocks import (
@@ -197,6 +198,13 @@ def generate_html(intel, deals, catalysts, drugs, companies, ailux_positions,
     ailux_block            = build_ailux_block(ailux_positions)
     prior_block            = build_prior_coverage_block(recent_issues)
     signals_block          = build_company_signals_block(company_signals)
+    # Enrich the plan with the freshest SOURCED deep-research facts (event-driven
+    # pipeline → intel_facts, incl. KOL/management quotes) so the issue reflects
+    # current research, not just RSS headlines. Additive + fail-soft.
+    try:
+        signals_block += build_recent_facts_block(fetch_recent_facts())
+    except Exception as _e:
+        log(f"Recent-facts enrichment skipped: {_e}")
     trials_block           = build_trials_block(trials)
     graph_block            = build_graph_block(
         graph_active_in or {},
