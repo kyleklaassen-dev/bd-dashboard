@@ -89,7 +89,7 @@
     list.innerHTML = rows.length ? rows.map(card).join('')
       : '<div style="color:#64748b;padding:40px;text-align:center">No reads match this filter.</div>';
     const sub=document.getElementById('reads-subtitle');
-    if(sub){ const f=(_fType||_fTarget); sub.textContent = rows.length+' read'+(rows.length===1?'':'s')+(f?' shown · '+_reads.length+' total':' · newest first'); }
+    if(sub){ const f=(_fType||_fTarget); sub.textContent = 'Raw daily research feed · '+rows.length+' read'+(rows.length===1?'':'s')+(f?' shown · '+_reads.length+' total':' · newest first'); }
   }
   window.__readsFilter=function(kind,val){ if(kind==='type')_fType=val; else _fTarget=val; buildFilters(); renderList(); };
   async function render(){

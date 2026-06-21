@@ -115,8 +115,8 @@
       const exp=c.expected_impact?` <span style="color:var(--mui-ink-2)">— expects: ${E(String(c.expected_impact).slice(0,140))}</span>`:'';
       return MUI.timelineItem({when:d<=0?'now':d+'d',what:E(c.label)+exp,meta:(c.significance?MUI.pill(c.significance,sigMod(c.significance)):'')+(c.is_key_watch?MUI.pill('key watch','med'):'')});
     }).join('')||'<div class="ml-sub">No upcoming catalysts in your areas.</div>';
-    const L=[['commercial','💰','Commercial &amp; Market','Where the opening is — unmet population, remission ceiling, how each rival stacks vs Ailux, payer hurdle.'],['landscape','🧬','Scientific Landscapes','Cited competitive-science synthesis per target space + Meridian interpretation.'],['clinical','🧪','Clinical Evidence','Per-drug trial-evidence signals — design quality, safety breadth, remission — from the trial harvest.'],['catalysts','📈','Pipeline &amp; Catalysts','What is about to read out, file, or present — ranked, significance-tagged.'],['deals','🤝','Deal Activity','Recent licensing / M&amp;A / financings with the strategic read where we have one.']];
-    return `<div class="ml-h2">Good morning. Here's what moved.</div><div class="ml-sub">Focused on Ailux's areas, targets &amp; associated companies — every item is sourced. Open any lens for the facts behind it.</div>
+    const L=[['__briefing__','📋','Executive Briefing','The full what\'s-happening feed — every development, catalyst, poster &amp; sourced fact across your areas.'],['commercial','💰','Commercial &amp; Market','Where the opening is — unmet population, remission ceiling, how each rival stacks vs Ailux, payer hurdle.'],['landscape','🧬','Scientific Landscapes','Cited competitive-science synthesis per target space + Meridian interpretation.'],['clinical','🧪','Clinical Evidence','Per-drug trial-evidence signals — design quality, safety breadth, remission — from the trial harvest.'],['catalysts','📈','Pipeline &amp; Catalysts','What is about to read out, file, or present — ranked, significance-tagged.'],['deals','🤝','Deal Activity','Recent licensing / M&amp;A / financings with the strategic read where we have one.']];
+    return `<div class="ml-h2">Good morning. Here's what moved.</div><div class="ml-sub">Your 30-second glance across Ailux's areas — every item sourced. For the comprehensive feed open the <b>📋 Executive Briefing</b>; for the raw daily stream, <b>Reads</b>.</div>
       <div class="ml-sech">📊 Recent readouts — what the data showed</div><div class="mui-list">${readouts}</div>
       <div class="ml-sech">⚡ What moved — recent deals</div><div class="mui-list">${moved}</div>
       <div class="ml-sech">🔎 Strategic signals</div><div class="mui-list">${sigs}</div>
@@ -200,7 +200,7 @@
     document.querySelectorAll('#ml-app .ml-lb').forEach(b=>b.classList.toggle('ml-on',b.dataset.lens===lens));
     document.getElementById('ml-view').innerHTML=V[lens]();
     if(lens==='commercial'){rComm();document.getElementById('ml-sort').onchange=rComm;document.getElementById('ml-dis').onchange=rComm;}
-    if(lens==='home'){document.querySelectorAll('#ml-app .ml-rc').forEach(c=>c.onclick=()=>go(c.dataset.go));}
+    if(lens==='home'){document.querySelectorAll('#ml-app .ml-rc').forEach(c=>c.onclick=()=>{ if(c.dataset.go==='__briefing__'){ if(typeof navTo==='function') navTo('briefing'); return; } go(c.dataset.go); });}
     const f=document.getElementById('ml-foot');if(f)f.innerHTML='Live preview · reads the same Supabase as the dashboard (publishable key, read-only) · cited narratives + per-claim provenance from narrative_provenance / triangulation. Nothing here is saved to your view yet.';
   }
   // wire lens buttons once DOM is present
