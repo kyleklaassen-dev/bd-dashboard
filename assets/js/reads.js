@@ -2,7 +2,9 @@
   const SB_URL = (typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'https://tghntyofptvfhmtchwcv.supabase.co');
   const SB_KEY = (typeof SUPABASE_ANON!=='undefined'?SUPABASE_ANON:'');
   const SEEN_KEY = 'meridian_reads_last_seen';
-  const TYPE_COLORS = {competitive:'#b45309',clinical_caveat:'#be123c',mechanism:'#1d4ed8',market:'#065f46',regulatory:'#7c3aed',thesis:'#0f766e',kol:'#9333ea',patient:'#0369a1',other:'#475569'};
+  // Colors cover both the legacy editorial read_types and the live `intel` intel_types.
+  const TYPE_COLORS = {competitive:'#b45309',clinical_caveat:'#be123c',mechanism:'#1d4ed8',market:'#065f46',regulatory:'#7c3aed',thesis:'#0f766e',kol:'#9333ea',patient:'#0369a1',other:'#475569',
+    data:'#be123c',deal:'#065f46',partnership:'#0f766e',conference:'#b45309',management:'#475569'};
   let _reads = null;
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return ''; } }
@@ -10,17 +12,43 @@
     const e=r.entity_refs||{}; const parts=[].concat(e.drugs||[],e.companies||[],e.targets||[]);
     return parts.length ? parts.map(function(p){return '<span style="background:#eef2f7;color:#334155;font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px">'+esc(p)+'</span>';}).join(' ') : '';
   }
+  // Map the live daily research feed (`intel`, written every morning by the research
+  // pipeline) onto the Read card shape. Reads is no longer a manual-only table — it
+  // reflects what enrichment surfaced today. (research_reads was never written by any
+  // pipeline; it went stale. See fix/aibs-and-reads-freshness.)
+  function fromIntel(r){
+    const co = (r.companies && r.companies.name) ? r.companies.name : null;
+    const areas = (r.intel_areas||[]).map(function(a){return a.area_id;}).filter(Boolean);
+    return {
+      id: r.id,
+      title: r.headline,
+      read: r.body,
+      read_type: r.intel_type || 'other',
+      confidence: r.importance,
+      so_what: null,
+      source_url: r.source_url,
+      source_name: r.source_name,
+      created_at: r.created_at,
+      intel_date: r.intel_date,
+      entity_refs: { companies: co ? [co] : [], drugs: [], targets: areas }
+    };
+  }
   async function fetchReads(){
-    const url = SB_URL+'/rest/v1/research_reads?select=*&order=created_at.desc&limit=200';
+    const sel = 'id,headline,body,intel_type,importance,intel_date,created_at,source_url,source_name,'
+      + 'companies!intel_primary_company_id_fkey(name),intel_areas(area_id)';
+    const url = SB_URL+'/rest/v1/intel?select='+encodeURIComponent(sel)+'&order=created_at.desc&limit=200';
     const res = await fetch(url,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
     if(!res.ok) throw new Error('HTTP '+res.status);
-    return await res.json();
+    const rows = await res.json();
+    return rows.map(fromIntel);
   }
   function card(r){
     const col = TYPE_COLORS[r.read_type]||TYPE_COLORS.other;
     const conf = r.confidence ? '<span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px">'+esc(r.confidence)+' confidence</span>' : '';
     const so = r.so_what ? '<div style="margin-top:10px;padding:10px 12px;background:#f8fafc;border-left:3px solid '+col+';border-radius:0 6px 6px 0;font-size:13.5px;color:#1e293b;line-height:1.55"><span style="font-weight:800;color:'+col+';font-size:11px;text-transform:uppercase;letter-spacing:.5px">So what</span><br>'+esc(r.so_what)+'</div>' : '';
-    const src = r.source_url ? '<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;text-decoration:none">source &#8599;</a>' : '';
+    const srcLabel = r.source_name ? esc(r.source_name)+' &#8599;' : 'source &#8599;';
+    const src = r.source_url ? '<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;text-decoration:none">'+srcLabel+'</a>'
+              : (r.source_name ? '<span style="font-size:11px;color:#94a3b8">'+esc(r.source_name)+'</span>' : '');
     return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)">'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">'
       +   '<span style="font-size:10px;font-weight:800;color:#fff;background:'+col+';padding:3px 9px;border-radius:7px;text-transform:uppercase;letter-spacing:.5px">'+esc((r.read_type||'read').replace(/_/g,' '))+'</span>'

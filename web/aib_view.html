@@ -68,6 +68,15 @@
   #doc .v-green,#doc strong.v-green{color:var(--green);font-weight:700}
   #doc .v-red,#doc strong.v-red{color:var(--red);font-weight:700}
   #doc .v-amber,#doc strong.v-amber{color:var(--amber);font-weight:700}
+  /* live brief (rendered from entity_narratives markdown) */
+  #doc h2{font-size:18px;color:var(--navy);font-weight:700;margin:26px 0 9px}
+  #doc h3{font-size:14.5px;color:var(--ink);font-weight:700;margin:16px 0 5px}
+  #doc h4{font-size:13px;color:var(--slate);font-weight:700;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.03em}
+  #doc table th{border:1px solid var(--navy);background:var(--navy);color:#fff;font-weight:700;padding:8px 11px;text-align:left;font-size:13px}
+  #doc .aib-fresh{font-size:11.5px;color:#94a3b8;font-weight:600;margin:0 0 14px;letter-spacing:.02em}
+  #doc .aib-stale{color:var(--amber);font-weight:700}
+  #doc .aib-sec{margin-bottom:8px}
+  #doc code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:12.5px}
   /* epistemic tags */
   .tagF{color:var(--green);font-weight:700}.tagI{color:var(--navy);font-weight:700}
   .tagJ{color:var(--amber);font-weight:700}.tagP{color:var(--red);font-weight:700}
@@ -133,12 +142,13 @@ const AREA={
 const _params=new URLSearchParams(location.search);
 const AREA_ID=AREA[_params.get('area')]?_params.get('area'):'tl1a';
 const _A=AREA[AREA_ID];
-const DOC_SRC=_A.frag;
 const cache={};
-// set band title + download from the area config
+// The area keys (tl1a/tslp/il4ra/igf1r/fcrn) ARE the entity_narratives target entity_ids,
+// so AREA_ID doubles as the entity_id; no static fragment files anymore.
+// set band title from the area config (download disabled — live briefs are rendered, not pre-baked .docx)
 document.addEventListener('DOMContentLoaded',function(){
   var h=document.querySelector('.band h1'); if(h) h.textContent=_A.title;
-  var dl=document.getElementById('dl'); if(dl) dl.href=_A.dl;
+  var dl=document.getElementById('dl'); if(dl) dl.style.display='none';
   document.title="Meridian · AIB — "+_A.title;
 });
 // ---- drug-name canonical-card chips ----
@@ -256,14 +266,76 @@ function enhance(root){
 }
 function colorCell(td,cls){ const b=td.querySelector('strong')||td; b.classList.add(cls); }
 
+// ── compact Markdown → HTML (headings, bold/italic, links, lists, pipe tables, paragraphs) ──
+function mdEscape(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function mdInline(s){
+  return mdEscape(s)
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>');
+}
+function mdToHtml(md){
+  const lines=String(md||'').replace(/\r/g,'').split('\n');
+  let html='',i=0,inList=false,listTag='ul';
+  function closeList(){ if(inList){html+='</'+listTag+'>';inList=false;} }
+  while(i<lines.length){
+    let ln=lines[i];
+    // table block
+    if(/^\s*\|.*\|\s*$/.test(ln) && i+1<lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i+1])){
+      closeList();
+      const head=ln.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+      i+=2; let body='';
+      while(i<lines.length && /^\s*\|.*\|\s*$/.test(lines[i])){
+        const cells=lines[i].trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+        body+='<tr>'+cells.map(c=>'<td>'+mdInline(c)+'</td>').join('')+'</tr>'; i++;
+      }
+      html+='<table><thead><tr>'+head.map(c=>'<th>'+mdInline(c)+'</th>').join('')+'</tr></thead><tbody>'+body+'</tbody></table>';
+      continue;
+    }
+    let m;
+    if((m=ln.match(/^(#{1,4})\s+(.*)$/))){ closeList(); const lv=Math.min(m[1].length,4); html+='<h'+lv+'>'+mdInline(m[2])+'</h'+lv+'>'; }
+    else if((m=ln.match(/^\s*[-*]\s+(.*)$/))){ if(!inList||listTag!=='ul'){closeList();html+='<ul>';inList=true;listTag='ul';} html+='<li>'+mdInline(m[1])+'</li>'; }
+    else if((m=ln.match(/^\s*\d+\.\s+(.*)$/))){ if(!inList||listTag!=='ol'){closeList();html+='<ol>';inList=true;listTag='ol';} html+='<li>'+mdInline(m[1])+'</li>'; }
+    else if(ln.trim()===''){ closeList(); }
+    else { closeList(); html+='<p>'+mdInline(ln.trim())+'</p>'; }
+    i++;
+  }
+  closeList();
+  return html;
+}
+// Slim post-render enhancement for live (already-semantic) HTML: chips + new-tab links only.
+function enhanceLive(root){
+  root.querySelectorAll('a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener';});
+  try{ wrapChips(root); }catch(e){ console.warn('chips',e); }
+}
+function relTime(iso){ try{ const d=Math.floor((Date.now()-new Date(iso))/864e5); return d<=0?'today':(d===1?'yesterday':d+' days ago'); }catch(e){ return ''; } }
+
 async function load(){
   const doc=document.getElementById('doc');
-  if(!cache.doc){
-    try{ const r=await fetch(DOC_SRC); cache.doc=await r.text(); }
-    catch(e){ doc.innerHTML='<div class="loading">Could not load the brief. '+e.message+'</div>'; return; }
-  }
-  doc.innerHTML=cache.doc;
-  enhance(doc);
+  doc.innerHTML='<div class="loading">Loading the live brief…</div>';
+  const SECTIONS=[['overview','Landscape Overview'],['intelligence','Competitive Intelligence'],['business','Strategic & BD Brief']];
+  try{
+    const url=SBV+'/rest/v1/entity_narratives?select=section,body_md,generated_at,stale'
+      +'&entity_type=eq.target&entity_id=eq.'+encodeURIComponent(AREA_ID);
+    const r=await fetch(url,{headers:{apikey:KEYV,Authorization:'Bearer '+KEYV}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows.length){ doc.innerHTML='<div class="loading">No Area Intelligence Brief has been generated for this area yet.</div>'; return; }
+    const bySec={}; rows.forEach(x=>bySec[x.section]=x);
+    let html='', gen=null, anyStale=false;
+    SECTIONS.forEach(function(pair){
+      const s=bySec[pair[0]]; if(!s||!s.body_md) return;
+      if(!gen||s.generated_at>gen) gen=s.generated_at;
+      if(s.stale) anyStale=true;
+      html+='<section class="aib-sec">'+mdToHtml(s.body_md)+'</section>';
+    });
+    if(!html){ doc.innerHTML='<div class="loading">No brief content available for this area yet.</div>'; return; }
+    const fresh='<div class="aib-fresh">Live brief · generated '+(gen?relTime(gen):'—')
+      +(anyStale?' · <span class="aib-stale">refresh pending</span>':'')+'</div>';
+    doc.innerHTML=fresh+html;
+    enhanceLive(doc);
+  }catch(e){ doc.innerHTML='<div class="loading">Could not load the brief. '+e.message+'</div>'; }
 }
 load();
 </script>
